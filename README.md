@@ -21,10 +21,10 @@ home. The other two are for studying on your own; each ends with challenges.
 
 - Chair Lab is a single file: its 3D viewer ([3Dmol.js](https://3dmol.org/), BSD license) is
   embedded in the page, so it loads nothing from other sites.
-- The two stereochemistry pages use [JSmol](https://jmol.sourceforge.net/) and load it from
-  St. Olaf College's public JSmol server (`chemapps.stolaf.edu/jmol/jsmol`), so they need an internet
-  connection and depend on that server being up. A copy of JSmol can be placed in this repository
-  to remove that dependency.
+- The two stereochemistry pages use [JSmol](https://jmol.sourceforge.net/) (Jmol 16.5.5, LGPL),
+  served from the `jsmol/` folder in this repository, so they load nothing from other sites. The
+  folder holds the HTML5 part of the JSmol distribution (`JSmol.min.js`, `j2s/`, `idioma/`); the
+  demo pages, data files and Java applet are left out.
 - The pages cite the sections of the open textbook they follow: [OpenStax Organic
   Chemistry](https://openstax.org/details/books/organic-chemistry), chapters 4 (cyclohexane) and 5
   (stereochemistry).
