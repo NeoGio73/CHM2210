@@ -932,7 +932,7 @@ void main() {
   vLetter = aLetter;
   vColor = aColor;
   vAlpha = alpha;
-  vFog = clamp((0.85 - rel) * 0.28, 0.0, 0.52);
+  vFog = clamp((0.85 - rel) * 0.16, 0.0, 0.3);
 }`;
 const atomFrag = `
 uniform sampler2D uAtlas;
@@ -948,9 +948,9 @@ void main() {
   vec3 L = normalize(vec3(-0.45, 0.55, 0.7));
   float diff = max(dot(n, L), 0.0);
   float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
-  vec3 col = vColor * (0.72 + 0.36 * diff) + spec * 0.22;
-  col *= mix(0.78, 1.0, smoothstep(1.0, 0.82, r));
-  vec2 luv = (vUv - 0.5) * 1.34 + 0.5;
+  vec3 col = vColor * (0.9 + 0.14 * diff) + spec * 0.12;
+  col = mix(col, uBg, vFog);
+  vec2 luv = (vUv - 0.5) * 1.16 + 0.5;
   float glyph = 0.0;
   if (luv.x > 0.0 && luv.x < 1.0 && luv.y > 0.0 && luv.y < 1.0) {
     float li = floor(vLetter + 0.5);
@@ -960,9 +960,10 @@ void main() {
     glyph = texture2D(uAtlas, auv).a;
   }
   float lum = dot(vColor, vec3(0.299, 0.587, 0.114));
-  vec3 ink = lum > 0.5 ? vec3(0.08, 0.10, 0.14) : vec3(1.0);
+  vec3 ink = lum > 0.5 ? vec3(0.02, 0.03, 0.05) : vec3(1.0);
+  glyph = smoothstep(0.2, 0.7, glyph);
   col = mix(col, ink, glyph);
-  col = mix(col, uBg, vFog);
+  col = mix(col, vec3(0.05, 0.07, 0.12), smoothstep(0.86, 0.93, r) * 0.9);
   float edge = smoothstep(1.0, 0.93, r);
   gl_FragColor = vec4(col, vAlpha * edge);
 }`;
@@ -1142,8 +1143,8 @@ function refreshAtoms() {
     if (pathSet.has(i)) { rgb = C_PATH; scale = 1.1; }
     if (i === S.anchor) { rgb = C_SEL; scale = 1.22; }
     if (flash && flash.has(i)) { rgb = S.flash.rgb; alpha = 1; scale = 1.12; }
-    if (i === S.hover && S.anchor < 0) scale = Math.max(scale, 1.16);
-    if (i === S.hover && S.anchor >= 0 && S.focus.has(i)) scale = Math.max(scale, 1.16);
+    if (i === S.hover && S.anchor < 0) scale = Math.max(scale, 1.45);
+    if (i === S.hover && S.anchor >= 0 && S.focus.has(i)) scale = Math.max(scale, 1.45);
     if (i === S.hintAtom && now < S.hintUntil) {
       rgb = C_SEL; alpha = 1;
       scale = reduceMotion ? 1.3 : 1.2 + 0.18 * Math.sin(now / 140);
