@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Breaker, LIP, LIP_TIP, CREST, NP } from './breaker.js';
-import { common, oceanMaterial, waveMaterial } from './water.js';
+import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js';
+import { Reflection } from './reflect.js';
 import * as Swell from './swell.js';
 import { Board, buildRider } from './rider.js';
 import { Sound } from './sound.js';
@@ -67,6 +68,7 @@ function setQuality(l) {
   renderer.setPixelRatio([0.75, Math.min(devicePixelRatio, 1.25), Math.min(devicePixelRatio, 2)][Q.level]);
   renderer.setSize(innerWidth, innerHeight);
   Q.fx = [0.35, 0.65, 1][Q.level];
+  if (typeof refl !== 'undefined') refl.setScale(PALETTE.reflectSize[Q.level]);
 }
 setQuality(Q.level);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -82,9 +84,9 @@ common.uSea.value = SEA;
 
 const sky = new Sky(); sky.scale.setScalar(20000);
 Object.assign(sky.material.uniforms, {});
-sky.material.uniforms.turbidity.value = 4;
-sky.material.uniforms.rayleigh.value = 1.6;
-sky.material.uniforms.mieCoefficient.value = 0.004;
+sky.material.uniforms.turbidity.value = PALETTE.haze.turbidity;
+sky.material.uniforms.rayleigh.value = PALETTE.haze.rayleigh;
+sky.material.uniforms.mieCoefficient.value = PALETTE.haze.mie;
 sky.material.uniforms.mieDirectionalG.value = 0.8;
 sky.material.uniforms.sunPosition.value.copy(sunDir);
 scene.add(sky);
@@ -96,6 +98,8 @@ scene.environment = pmrem.fromScene(skyScene).texture;
 
 const sun = new THREE.DirectionalLight(0xffe2c4, 2.2); sun.position.copy(sunDir).multiplyScalar(1000); scene.add(sun);
 scene.add(new THREE.HemisphereLight(0x9ab8d8, 0x4a4030, 0.6));
+// the same haze over the cliffs, rocks and surfer as over the water (the sky dome stays clear of it)
+scene.fog = new THREE.FogExp2(common.uFogColor.value.clone(), PALETTE.haze.fogDensity);
 
 // ---- terrain: land and rocks (the seabed is under the opaque sea) ----
 {
@@ -162,6 +166,10 @@ const ocean = new THREE.Mesh(new THREE.PlaneGeometry(40000, 40000), oceanMateria
 ocean.rotation.x = -Math.PI / 2; ocean.position.y = SEA; scene.add(ocean);
 const oceans = [ocean, oceanNear];
 for (const o of oceans) o.material.uniforms.uDir.value.set(DIR[0], DIR[1]);
+// reflections: the scene mirrored in the sea's flat surface, minus the sea and the sky dome
+var refl = new Reflection(renderer, scene, SEA, [...oceans, sky]);
+refl.setScale(PALETTE.reflectSize[Q.level]);
+common.uCrest.value.set(NRM[0], NRM[1]);
 // the background sea's height at a point, as the shader works it out
 const bg = (x, y) => { const f = Swell.fade(SEA - elev(x, y), x, y); return f > 0 ? f * Swell.height(x, y, clock) : 0; };
 
@@ -357,6 +365,16 @@ function updateSpray(dt) {
       if (H < 3) continue;
       const rate = (tau > LIP - 0.25 && tau < LIP + 0.7) ? 70 : (tau > 0 && tau < LIP) ? 6 : (tau > LIP && tau < LIP + 9) ? 10 * Math.exp(-(tau - LIP) / 4) : 0;
       let n = rate * dt * (H / 12) * Q.fx; n = Math.floor(n) + (Math.random() < n % 1 ? 1 : 0);
+      // feathering: as the crest stands up just before it pitches, wisps of spray tear off its
+      // top and blow back over the wave on the light offshore wind
+      const power = breakPower(stations[s]);
+      const fr = tau > -2.5 && tau <= 0.3 && power > 0.4 ? 45 * smooth(-2.5, -0.4, tau) * power * PALETTE.crestSpray : 0;
+      let nf = fr * dt * (H / 12) * Q.fx; nf = Math.floor(nf) + (Math.random() < nf % 1 ? 1 : 0);
+      for (let q = 0; q < nf; q++) {
+        const p = b.point(s, CREST + 2), along = (Math.random() - 0.5) * 3, back = -4 - Math.random() * 6;
+        emit([p[0] + NRM[0] * along, p[1] + 0.3, p[2] - NRM[1] * along],
+             D.x * back + (Math.random() - 0.5) * 1.5, 2 + Math.random() * 4, D.z * back + (Math.random() - 0.5) * 1.5, 1.2 + Math.random() * 1.6);
+      }
       for (let q = 0; q < n; q++) {
         const impact = tau > LIP - 0.25 && tau < LIP + 0.7;
         const p = b.point(s, impact ? LIP_TIP : (tau < LIP ? LIP_TIP : CREST));
@@ -421,6 +439,54 @@ function updateMist(dt) {
     mi.col[4 * i] = mi.col[4 * i + 1] = mi.col[4 * i + 2] = 0.95; mi.col[4 * i + 3] = 0.16 * fade;
   }
   miGeo.attributes.position.needsUpdate = true; miGeo.attributes.color.needsUpdate = true;
+}
+
+// ---- foam puffs: big grainy clumps riding on the whitewater ----
+// Each is pinned to a point of a broken section (from the foam top to the front of the bore),
+// so it moves with the wave; it swells as the lip lands, boils gently, and fades as the
+// whitewater ages. Its place, size and picture come from a fixed random number per wave,
+// section and slot, so the same puffs stay put from frame to frame (and in a replay).
+const PUFF_SLOTS = 3, MAXPUFF = 2400;
+const PUFF_I0 = CREST, PUFF_I1 = NP - 20;               // the foam top to the bore's toe
+const pf = { pos: new Float32Array(MAXPUFF * 3), size: new Float32Array(MAXPUFF), alpha: new Float32Array(MAXPUFF),
+             cell: new Float32Array(MAXPUFF), rot: new Float32Array(MAXPUFF) };
+const pfGeo = new THREE.BufferGeometry();
+pfGeo.setAttribute('position', new THREE.BufferAttribute(pf.pos, 3).setUsage(THREE.DynamicDrawUsage));
+for (const k of ['size', 'alpha', 'cell', 'rot']) pfGeo.setAttribute(k, new THREE.BufferAttribute(pf[k], 1).setUsage(THREE.DynamicDrawUsage));
+const pfMat = puffMaterial(puffAtlas());
+const puffs = new THREE.Points(pfGeo, pfMat);
+puffs.frustumCulled = false; scene.add(puffs);
+const hr = n => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+function updatePuffs(t) {
+  let n = 0;
+  const amt = PALETTE.puffs, slots = Math.max(1, Math.round(PUFF_SLOTS * Q.fx));
+  if (amt > 0) for (const b of waves) {
+    if (!b.active) continue;
+    for (let s = 0; s < stations.length && n < MAXPUFF; s++) {
+      const tau = b.tau[s], H = b.H[s];
+      if (!(tau > LIP - 0.3) || tau > LIP + 16 || H < 2) continue;
+      const grow = smooth(LIP - 0.3, LIP + 1.2, tau), age = Math.exp(-(tau - LIP) / 9);
+      const gap = s + 1 < stations.length ? stations[s + 1] - stations[s] : 5;
+      for (let j = 0; j < slots && n < MAXPUFF; j++) {
+        const key = (setNo * 7 + b.k) * 100003 + s * 31 + j;
+        const r1 = hr(key), r2 = hr(key + 0.37), r3 = hr(key + 0.71), r4 = hr(key + 0.13);
+        const p = b.point(s, PUFF_I0 + Math.floor(r1 * (PUFF_I1 - PUFF_I0)));
+        const side = (r2 - 0.5) * gap;                   // spread along the crest between sections
+        pf.pos[3 * n] = p[0] + NRM[0] * side; pf.pos[3 * n + 2] = p[2] - NRM[1] * side;
+        const sz = H * (0.35 + 0.4 * r3) * (0.5 + 0.5 * grow) * (1 + 0.12 * Math.sin(t * 1.3 + r4 * 6.28));
+        pf.pos[3 * n + 1] = Math.max(p[1] + sz * 0.18, SEA + sz * 0.15);
+        pf.size[n] = sz;
+        pf.alpha[n] = amt * smooth(LIP - 0.3, LIP + 0.5, tau) * age * (0.55 + 0.45 * r4);
+        pf.cell[n] = Math.floor(r2 * 4) % 4;
+        pf.rot[n] = (r3 - 0.5) * 0.8 + 0.05 * Math.sin(t * 0.7 + r1 * 6.28);
+        n++;
+      }
+    }
+  }
+  pfGeo.setDrawRange(0, n);
+  for (const k of ['position', 'size', 'alpha', 'cell', 'rot']) pfGeo.attributes[k].needsUpdate = true;
+  // sprite size in pixels per metre at one metre away
+  pfMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
 }
 
 // ---- foam left behind ----
@@ -812,7 +878,7 @@ document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
 });
 $('pause').onclick = () => { paused = !paused; $('pause').textContent = paused ? 'Play' : 'Pause'; };
 $('nextset').onclick = () => resetSet(clock + 1);
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); AQ.skip = 1000; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); refl.resize(); AQ.skip = 1000; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 
 function hud() {
   // the wave breaking on the wall now, or else the next one coming in
@@ -943,7 +1009,7 @@ function stepReplay(dtReal) {
   if (replay.t >= replay.t1) { endReplay(); return; }
   clock = replay.t;
   common.uTime.value = clock;
-  updateWaves(clock);
+  updateWaves(clock); updatePuffs(clock);
   if (dt > 0) { updateSpray(dt); updateMist(dt); updateFoam(dt); boardSprayParticles(dt); }
   const f = frameAt(replay.t);
   placeFrom(f);
@@ -952,6 +1018,7 @@ function stepReplay(dtReal) {
   replayCamera(f, Math.max(dt, 0.016));
   $('replayTime').textContent = `${(replay.t - replay.t0).toFixed(1)} / ${(replay.t1 - replay.t0).toFixed(1)} s`;
   if (dt > 0) listen(dt);
+  refl.update(camera);
   renderer.render(scene, camera);
 }
 
@@ -977,7 +1044,7 @@ function adapt(ms) {
 }
 window.__mav = { get clock() { return clock; }, set clock(v) { clock = v; }, waves, setView, resetSet, stations, camera, controls, cliff, elev, marks, W3,
   board, keys, toLineup, waveAt, surface, toXY,
-  pause(p) { paused = p; }, get cpuMs() { return cpuMs; }, Q, setQuality, sound,
+  pause(p) { paused = p; }, get cpuMs() { return cpuMs; }, Q, setQuality, sound, refl,
   get assistOn() { return assistOn; }, set assistOn(v) { assistOn = v; $('assist').classList.toggle('on', v); },
   // for tests: run the game without drawing, `ctl(state)` pressing keys each frame (1/30 s), until it returns true
   sim(ctl, maxT = 60) {
@@ -999,7 +1066,7 @@ renderer.setAnimationLoop(() => {
   common.uTime.value = clock;
   if (waves.every(b => b.off || U0 + C * (clock - setStart - b.t0) > U_END)) resetSet(clock + lull);
   const c0 = performance.now();
-  updateWaves(clock);
+  updateWaves(clock); updatePuffs(clock);
   if (dt > 0) { updateSpray(dt); updateMist(dt); updateFoam(dt); }
   cpuMs = cpuMs * 0.95 + (performance.now() - c0) * 0.05;
   if (view === 'surf') {
@@ -1017,5 +1084,6 @@ renderer.setAnimationLoop(() => {
   if (view === 'free') controls.update();
   hud();
   if (dt > 0) listen(dt);
+  refl.update(camera);
   renderer.render(scene, camera);
 });

@@ -31,7 +31,9 @@ function bez(p0, p1, p2, p3, t) {
 // Fill px, py (metres, x forward from the crest, y up from the flat sea), foam and thin (0..1)
 // for one section of height H (crest above the flat sea) in water `depth` deep at time tau.
 // power (0..1): how hard this part of the crest breaks; less toward the channel, where the wave backs off.
-export function profile(H, depth, tau, px, py, foam, thin, power = 1) {
+// fx (optional, 2 per point): how much foam lace the point carries, and how much of the lip's
+// falling curtain (white streaks running down the thrown sheet of water).
+export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null) {
   const h = Math.max(depth, H / 0.78, 2);
   const sigma = Math.min(70, Math.max(10, Math.sqrt(4 * h * h * h / (3 * Math.max(H, 0.3)))));  // solitary-wave width
   const steep = smooth(-7, 0, tau) * (0.4 + 0.6 * power);   // front steepening
@@ -41,6 +43,11 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1) {
   const decay = tau > LIP ? 1 - power * 0.55 * (1 - Math.exp(-(tau - LIP) / 7)) : 1;   // weak breakers shrink less
   const Hc = H * decay;
   const whiteAge = tau > LIP ? Math.exp(-(tau - LIP) / 18) : 0;
+  // lace: foam lines spread over the face as the curl comes near (the sections just ahead of
+  // the break point) and stay in the barrel, fading as the whitewater takes over
+  const laceS = smooth(-4, 0, tau) * (1 - 0.8 * bore) * (0.4 + 0.6 * power);
+  const curtS = lamS * (1 - bore);                       // the lip is a falling sheet
+  const setFx = (k, l, c) => { if (fx) { fx[2 * k] = l; fx[2 * k + 1] = c; } };
 
   let k = 0;
   // back slope, denser toward the crest
@@ -49,6 +56,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1) {
     px[k] = x; py[k] = Hc * sech2(x / sigma);
     foam[k] = bore * whiteAge * smooth(-25, 0, x) * 0.9;
     thin[k] = 0;
+    setFx(k, laceS * smooth(-0.6 * Hc, 0, x) * 0.6, 0);
   }
   // the lip: centreline from the crest to the tip, then the two sides
   const C0 = [0, Hc];
@@ -80,6 +88,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1) {
     px[k] = r[0]; py[k] = r[1];
     foam[k] = Math.max(smooth(0.78, 1, q) * lamS * 0.7, bore * whiteAge);
     thin[k] = lamS * (0.6 + 0.4 * q) * (1 - bore);
+    setFx(k, laceS * 0.35 * (1 - q), curtS * smooth(0.1, 0.55, q));
   }
   for (let i = NL - 1; i >= 0; i--, k++) {               // underside of the lip, back in
     const q = (i + 1) / NL, t = t0 * Math.pow(1 - q, 0.8) * 0.5;
@@ -87,6 +96,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1) {
     px[k] = r[0]; py[k] = r[1];
     foam[k] = Math.max(smooth(0.85, 1, q) * lamS * 0.5, bore * whiteAge);
     thin[k] = lamS * (1 - bore);
+    setFx(k, laceS * 0.1, curtS * smooth(0.1, 0.5, q));
   }
   // the front: unbroken steepening face, or the barrel's inside wall, or the bore
   const R = [0.02 * Hc * lamS, Hc - t0];
@@ -105,6 +115,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1) {
       [x, y] = toward(x, y, 0.58 + 0.42 * q);
       foam[k] = Math.max(lamS * smooth(0.75, 1, q) * 0.5, bore * whiteAge);
       thin[k] = wall * (1 - q) * 0.5 * (1 - bore) + (1 - wall) * steep * smooth(0.6, 0, q) * 0.6;
+      setFx(k, laceS * Math.pow(1 - q, 1.5), curtS * smooth(0.3, 0, q) * 0.5);
     } else {
       const q = (i - NW + 1) / (NF - NW);
       const x0 = (1 - wall) * (0.95 * Hc + 2) + wall * F[0];
@@ -113,6 +124,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1) {
       y = (1 - wall) * Hc * sech2(x / sF) * (1 - bore);
       foam[k] = bore * whiteAge * smooth(0.6, 0, q) * 0.9;
       thin[k] = 0;
+      setFx(k, laceS * smooth(0.5, 0, q) * 0.5, 0);
     }
     px[k] = x; py[k] = y;
   }
@@ -130,10 +142,12 @@ export class Breaker {
     this.foam = new Float32Array(n);
     this.thin = new Float32Array(n);
     this.nor = new Float32Array(n * 3);
+    this.fx = new Float32Array(n * 2);
     this.geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
     this.geo.setAttribute('normal', new THREE.BufferAttribute(this.nor, 3).setUsage(THREE.DynamicDrawUsage));
     this.geo.setAttribute('foam', new THREE.BufferAttribute(this.foam, 1).setUsage(THREE.DynamicDrawUsage));
     this.geo.setAttribute('thin', new THREE.BufferAttribute(this.thin, 1).setUsage(THREE.DynamicDrawUsage));
+    this.geo.setAttribute('fx', new THREE.BufferAttribute(this.fx, 2).setUsage(THREE.DynamicDrawUsage));
     const idx = [];
     for (let s = 0; s + 1 < stations.length; s++)
       for (let i = 0; i + 1 < NP; i++) {
@@ -144,7 +158,7 @@ export class Breaker {
     this.mesh = new THREE.Mesh(this.geo, material);
     this.mesh.frustumCulled = false;
     this.px = new Float32Array(NP); this.py = new Float32Array(NP);
-    this.f = new Float32Array(NP); this.t = new Float32Array(NP);
+    this.f = new Float32Array(NP); this.t = new Float32Array(NP); this.e = new Float32Array(NP * 2);
     this.tau = new Float32Array(stations.length);
     this.H = new Float32Array(stations.length);
     this.u = 0;
@@ -153,13 +167,13 @@ export class Breaker {
   // frame: {u: crest position along the travel (m), sea: water level, dir:[dx,dy], nrm:[nx,ny],
   //         section(v) -> {H, tau, depth}}
   update(f) {
-    const { pos, nor, foam, thin, px, py } = this;
+    const { pos, nor, foam, thin, fx, px, py } = this;
     let k = 0;
     for (let s = 0; s < this.v.length; s++) {
       const v = this.v[s];
       const sec = f.section(v, s);
       this.tau[s] = sec.tau; this.H[s] = sec.H;
-      profile(sec.H, sec.depth, sec.tau, px, py, this.f, this.t, sec.power ?? 1);
+      profile(sec.H, sec.depth, sec.tau, px, py, this.f, this.t, sec.power ?? 1, this.e);
       const bx = f.nrm[0] * v, by = f.nrm[1] * v;
       // the background sea under this section, sampled every BGS metres along it and interpolated
       if (f.bg) for (let j = 0; j < BGN; j++) {
@@ -176,6 +190,7 @@ export class Breaker {
         }
         pos[3 * k] = x; pos[3 * k + 1] = f.sea + py[i] + g; pos[3 * k + 2] = -y;   // three.js: -z is north
         foam[k] = this.f[i]; thin[k] = this.t[i];
+        fx[2 * k] = this.e[2 * i]; fx[2 * k + 1] = this.e[2 * i + 1];
         // normal from the section's own shape: the curve runs back to front, its left side is out of the water
         const a = Math.max(0, i - 1), b = Math.min(NP - 1, i + 1);
         let tx = px[b] - px[a], ty = py[b] - py[a];
@@ -189,6 +204,7 @@ export class Breaker {
     this.geo.attributes.normal.needsUpdate = true;
     this.geo.attributes.foam.needsUpdate = true;
     this.geo.attributes.thin.needsUpdate = true;
+    this.geo.attributes.fx.needsUpdate = true;
   }
 
   // height of the water's upper surface above the flat sea, at `along` metres along the travel,
