@@ -17,8 +17,18 @@ import * as THREE from 'three';
 
 const NB = 40, NL = 22, NF = 50;          // points: back, lip (each side), front
 export const NP = NB + 2 * NL + NF;
-const XB = 160, XF = 160;                  // the strip runs from 160 m behind the crest to 160 m ahead
-export const LIP = 2.8;                    // seconds for the lip to throw and land
+// the strip runs from XB metres behind the crest to XF ahead (160 at Mavericks). Where the waves
+// come closer together than the strip is wide, neighbouring strips overlap and fight over the
+// same water: setStripHalfWidth() narrows them (Teahupo'o's waves are about 250 m apart).
+export let XB = 160, XF = 160;
+export function setStripHalfWidth(m) { XB = XF = m; }
+export let LIP = 2.8;                      // seconds for the lip to throw and land
+// The lip's shape, per spot (setLipShape): how far forward it throws (share of the wave's height),
+// how thick it is at its root, and how far the trough in front of the barrel drops below the
+// flat sea (share of the height). Mavericks: 0.78, 0.11, none. Teahupo'o (Shand 2024): a lip
+// about half the wave's height thick, and a trough sucked below sea level in front of it.
+export const SHAPE = { throw: 0.78, thick: 0.11, trough: 0 };
+export function setLipShape(s) { if (s.lip_s) LIP = s.lip_s; for (const k of ['throw', 'thick', 'trough']) if (s[k] != null) SHAPE[k] = s[k]; }
 
 const sech2 = x => { const c = Math.cosh(x); return 1 / (c * c); };
 const clamp01 = x => Math.min(1, Math.max(0, x));
@@ -60,9 +70,13 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
   }
   // the lip: centreline from the crest to the tip, then the two sides
   const C0 = [0, Hc];
-  const T = [0.78 * Hc * lamS, Hc + 0.14 * Hc * lamS - 1.06 * Hc * lamS * lamS];
-  const P1 = [0.38 * Hc * lamS, Hc + 0.13 * Hc * lamS], P2 = [T[0] + 0.06 * Hc * lamS, T[1] + 0.42 * Hc * lamS];
-  const t0 = 0.11 * Hc * Math.sqrt(lamS);
+  // the throw: how far out the lip goes. A longer throw also arcs higher before it falls, and the
+  // barrel's inside wall (below) reaches further out to meet it, so the tube grows with it.
+  // At Mavericks' 0.78 everything is as it was.
+  const TH = SHAPE.throw, TX = TH / 0.78, lift = Math.max(0, TX - 1);
+  const T = [TH * Hc * lamS, Hc + 0.14 * Hc * lamS - 1.06 * Hc * lamS * lamS];
+  const P1 = [0.38 * TX * Hc * lamS, Hc + (0.13 + 0.22 * lift) * Hc * lamS], P2 = [T[0] + 0.06 * Hc * lamS, T[1] + (0.42 + 0.3 * lift) * Hc * lamS];
+  const t0 = SHAPE.thick * Hc * Math.sqrt(lamS);
   const cl = [], nrm = [];
   for (let i = 0; i < NL; i++) {
     const q = (i + 1) / NL;
@@ -74,7 +88,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
   // a foam top sloping from the crest down to where the lip landed, a rounded front face,
   // then a toe of foam running out ahead. Each point of the lip and the barrel is drawn
   // toward its own place on it, so the barrel fills in rather than jumping.
-  const xL = Math.max(0.78 * Hc * power, 1.5) + 1;
+  const xL = Math.max(TH * Hc * power, 1.5) + 1;
   const Fb1 = [xL + 0.25 * Hc, 0.5 * Hc], Fb2 = [xL + 0.38 * Hc, 0.18 * Hc], Fb3 = [xL + 0.4 * Hc, 0.05 * Hc];
   const boreAt = p => {
     if (p <= 0.5) { const s = p / 0.5; return [xL * s, Hc * (1 - 0.42 * Math.pow(s, 1.6))]; }
@@ -100,11 +114,15 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
   }
   // the front: unbroken steepening face, or the barrel's inside wall, or the bore
   const R = [0.02 * Hc * lamS, Hc - t0];
-  const F = [(0.95 + 0.25 * lamS) * Hc + 2, 0];
-  const D1 = [R[0] + 0.12 * Hc, R[1] - 0.5 * Hc], D2 = [F[0] - 0.5 * Hc, 0.02 * Hc];
+  const F = [(0.95 + 0.25 * TX * lamS) * Hc + 2, 0];
+  // a longer throw hollows the wall: its middle bows back under the lip
+  const D1 = [R[0] + (0.12 - 0.06 * lift) * Hc, R[1] - 0.5 * Hc], D2 = [F[0] - (0.5 + 0.15 * lift) * Hc, 0.02 * Hc];
   const sF = sigma * (1 - 0.72 * steep);
   const wall = smooth(-1.5, 0.3, tau) * power;
   const NW = Math.round(NF * 0.6);
+  // the trough sucked down in front of a heavy breaker, centred under where the lip lands
+  const dipA = SHAPE.trough * Hc * Math.max(wall, 0.6 * steep) * (1 - bore), dipX = 0.85 * F[0], dipW = 0.7 * Hc + 2;
+  const dip = x => dipA > 0 ? dipA * sech2((x - dipX) / dipW) : 0;
   for (let i = 0; i < NF; i++, k++) {
     let x, y;
     if (i < NW) {
@@ -112,6 +130,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
       const ux = (0.95 * Hc + 2) * q * q, uy = Hc * sech2(ux / sF);          // unbroken face
       const b = bez(R, D1, D2, F, q);                                        // barrel wall
       x = ux + (b[0] - ux) * wall; y = uy + (b[1] - uy) * wall;
+      y -= dip(x) * q;                                                       // the foot of the barrel wall into the trough
       [x, y] = toward(x, y, 0.58 + 0.42 * q);
       foam[k] = Math.max(lamS * smooth(0.75, 1, q) * 0.5, bore * whiteAge);
       thin[k] = wall * (1 - q) * 0.5 * (1 - bore) + (1 - wall) * steep * smooth(0.6, 0, q) * 0.6;
@@ -121,7 +140,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
       const x0 = (1 - wall) * (0.95 * Hc + 2) + wall * F[0];
       const xb = boreAt(1)[0], start = x0 + (xb - x0) * bore;
       x = start + (XF - start) * q * q;
-      y = (1 - wall) * Hc * sech2(x / sF) * (1 - bore);
+      y = (1 - wall) * Hc * sech2(x / sF) * (1 - bore) - dip(x);
       foam[k] = bore * whiteAge * smooth(0.6, 0, q) * 0.9;
       thin[k] = 0;
       setFx(k, laceS * smooth(0.5, 0, q) * 0.5, 0);
@@ -130,7 +149,8 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
   }
 }
 
-const BGS = 20, BGN = Math.ceil((XB + XF) / BGS) + 1, BG = new Float32Array(BGN);
+const BGS = 20, BG = new Float32Array(Math.ceil(320 / BGS) + 2);   // sized for the widest strip
+let BGN = 0;
 
 // A wave strip: `stations` are positions along the crest (metres, + = north).
 export class Breaker {
@@ -176,6 +196,7 @@ export class Breaker {
       profile(sec.H, sec.depth, sec.tau, px, py, this.f, this.t, sec.power ?? 1, this.e);
       const bx = f.nrm[0] * v, by = f.nrm[1] * v;
       // the background sea under this section, sampled every BGS metres along it and interpolated
+      BGN = Math.ceil((XB + XF) / BGS) + 1;
       if (f.bg) for (let j = 0; j < BGN; j++) {
         const along = f.u - XB + j * BGS;
         BG[j] = f.bg(f.dir[0] * along + bx, f.dir[1] * along + by);

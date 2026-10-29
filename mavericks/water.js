@@ -1,6 +1,6 @@
 // Water materials: the open sea and the breaking waves.
 import * as THREE from 'three';
-import { glsl as swellGlsl, CENTER, HALF } from './swell.js?v=aaf4de57ce';
+import { glsl as swellGlsl, CENTER, HALF } from './swell.js?v=3b3873500c';
 
 // The water's look, all in one place (linear colours, 0..1). Mavericks is cold, grey-green
 // water; these keep that but brighter and bluer than before, with the wave's face lighter
@@ -46,6 +46,7 @@ export const common = {
   uLace: { value: PALETTE.lace },
   uCurtain: { value: PALETTE.curtain },
   uCrest: { value: new THREE.Vector2(0, 1) },   // direction along the crest (east, north)
+  uSeaDir: { value: new THREE.Vector2(1, 0) },  // the waves' direction of travel (east, north)
   uRefl: { value: null },                       // the mirror's picture (reflect.js)
   uReflMatrix: { value: new THREE.Matrix4() },
   uReflOn: { value: 0 },
@@ -75,7 +76,7 @@ uniform sampler2D uDepth; uniform vec4 uDepthRect; uniform sampler2D uFoam; unif
 uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uGlow; uniform vec3 uFoamTint;
 uniform float uFaceLift; uniform float uLace; uniform float uCurtain; uniform vec2 uCrest;
 uniform float uStreak; uniform float uSlicks; uniform float uAmbient; uniform float uGlint; uniform float uSheen;
-uniform sampler2D uRefl; uniform mat4 uReflMatrix; uniform float uReflOn;
+uniform sampler2D uRefl; uniform mat4 uReflMatrix; uniform float uReflOn; uniform vec2 uSeaDir;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -87,6 +88,34 @@ vec3 skyColor(vec3 r) {
   vec3 c = mix(uSkyHorizon, uSkyZenith, pow(e, 0.45));
   float s = max(dot(r, uSunDir), 0.0);
   return c + uSunColor * (pow(s, 6.0) * 0.18 + pow(s, 200.0) * 2.0);
+}
+// The open sea's ripples, as a slope (d height / d east, d north): layered drifting noise in the
+// crest's frame, stretched along the crest, with long glassy bands. Shared by the open sea and the
+// flat water inside each wave's strip, so the two meet without a seam.
+vec2 seaRipples(vec2 xy, float dist) {
+  vec2 g = vec2(0.0);
+  float amp = 0.5, fr = 0.09;
+  float a = dot(xy, uCrest), b = dot(xy, uSeaDir);
+  for (int i = 0; i < 4; i++) {
+    vec2 drift = vec2(0.25 * float(i) - 0.3, 1.0) * uTime * (1.2 + 0.5 * float(i));
+    vec2 p = (vec2(a / uStreak, b) + drift) * fr;
+    float e = 0.35;
+    float ha = vnoise(p + vec2(e, 0.0)) - vnoise(p - vec2(e, 0.0));
+    float hb = vnoise(p + vec2(0.0, e)) - vnoise(p - vec2(0.0, e));
+    float fade = 1.0 / (1.0 + dist * fr * 0.02);
+    vec2 gp = vec2(ha, hb) / (2.0 * e) * fr * amp * fade;
+    g += uCrest * gp.x / uStreak + uSeaDir * gp.y;
+    amp *= 0.55; fr *= 2.3;
+  }
+  float slick = smoothstep(0.45, 0.75, vnoise(vec2(a * 0.0035, b * 0.03) + vec2(0.0, uTime * 0.01)));
+  return g * (1.0 - 0.8 * uSlicks * slick);
+}
+float foamAt(vec2 xy);
+// the foam left on the open water (the foam map), broken into patches
+float seaFoam(vec2 xy) {
+  float f = foamAt(xy);
+  float pattern = vnoise(xy * 0.16 + uTime * 0.05) * 0.6 + vnoise(xy * 0.5) * 0.4;
+  return smoothstep(0.15, 0.85, clamp(f * (0.55 + 0.9 * pattern), 0.0, 1.0));
 }
 float waterDepth(vec2 xy) {          // xy: metres east, north
   vec2 uv = (xy - uDepthRect.xy) / uDepthRect.zw;
@@ -196,35 +225,13 @@ export function oceanMaterial(maxBands, inner) {
         if (v > uVRange.x && v < uVRange.y)
           for (int i = 0; i < ${maxBands}; i++)
             if (uBands[i].z > 0.5 && abs(u - uBands[i].x) < uBands[i].y) discard;
-        // ripples: layered drifting noise (slopes from its differences), plus a gentle background swell
+        // ripples (seaRipples, shared with the wave strips' flat water), plus the background swell
         float dist = length(cameraPosition - vW);
-        vec2 g = vec2(0.0);
-        float amp = 0.5, fr = 0.09;
-        // ripples in the crest's frame (a: along the crest, b: toward the shore), stretched along
-        // the crest, so the water reads as long lines parallel to the waves
-        float a = dot(xy, uCrest), b = dot(xy, uDir);
-        for (int i = 0; i < 4; i++) {
-          vec2 drift = vec2(0.25 * float(i) - 0.3, 1.0) * uTime * (1.2 + 0.5 * float(i));
-          vec2 p = (vec2(a / uStreak, b) + drift) * fr;
-          float e = 0.35;
-          float ha = vnoise(p + vec2(e, 0.0)) - vnoise(p - vec2(e, 0.0));
-          float hb = vnoise(p + vec2(0.0, e)) - vnoise(p - vec2(0.0, e));
-          float fade = 1.0 / (1.0 + dist * fr * 0.02);
-          vec2 gp = vec2(ha, hb) / (2.0 * e) * fr * amp * fade;
-          g += uCrest * gp.x / uStreak + uDir * gp.y;
-          amp *= 0.55; fr *= 2.3;
-        }
-        // glassy bands: long patches, parallel to the crest, where the ripples die down
-        float slick = smoothstep(0.45, 0.75, vnoise(vec2(a * 0.0035, b * 0.03) + vec2(0.0, uTime * 0.01)));
-        g *= 1.0 - 0.8 * uSlicks * slick;
-        g += vGrad;
+        vec2 g = seaRipples(xy, dist) + vGrad;
         vec3 n = normalize(vec3(-g.x, 1.0, g.y));
         vec3 V = normalize(cameraPosition - vW);
         float depth = waterDepth(xy);
-        float f = foamAt(xy);
-        float pattern = vnoise(xy * 0.16 + uTime * 0.05) * 0.6 + vnoise(xy * 0.5) * 0.4;
-        f = clamp(f * (0.55 + 0.9 * pattern), 0.0, 1.0);
-        f = smoothstep(0.15, 0.85, f);
+        float f = seaFoam(xy);
         vec3 col = shadeWater(n, V, waterBody(depth), f, 0.0, dist, vW, 1.0 - f);
         gl_FragColor = vec4(col, 1.0);
         ${tail}
@@ -364,6 +371,15 @@ export function waveMaterial() {
         float f = vFoam * (0.6 + 0.8 * vnoise(xy * 0.22 + vec2(0.0, vW.y * 0.3) + uTime * 0.2));
         f = smoothstep(0.12, 0.8, f);
         float dist = length(cameraPosition - vW);
+        // the strip's flat water (level, no whitewater) is drawn exactly as the open sea is, so the
+        // two meet without a seam where the strip ends
+        vec3 gN = normalize(vN); if (gN.y < 0.0) gN = -gN;
+        float flatW = smoothstep(0.975, 0.997, gN.y) * (1.0 - smoothstep(0.05, 0.3, vFoam));
+        if (flatW > 0.001) {
+          vec2 gs = seaRipples(xy, dist);
+          n = normalize(mix(n, normalize(gN + vec3(-gs.x, 0.0, gs.y)), flatW));
+          f = mix(f, max(f, seaFoam(xy)), flatW);
+        }
         // the lip's falling curtain: long streaks running down the thrown sheet, moving down
         float s1 = vnoise(vec2(along * 1.1, up * 0.07 + uTime * 1.6));
         float s2 = vnoise(vec2(along * 2.9 + 11.0, up * 0.12 + uTime * 2.3));

@@ -11,7 +11,7 @@
 // neoprene hood, a red flotation vest, a leash from the tail to the back ankle. The board is the
 // bought board's shape only, painted here (BOARD_PAINT): the pack's own textures were not used.
 import * as THREE from 'three';
-import { loadPak } from './models.js?v=aaf4de57ce';
+import { loadPak } from './models.js?v=3b3873500c';
 
 // The board's paint: change these and reload. Colours as CSS colours; null leaves a part out.
 // After his reference photo (29 October 2026): a lime-green gun, a thin dark line round the rails,
@@ -76,9 +76,11 @@ function boardUVs(geo) {
   return bb;
 }
 
-export async function upgradeRider(rider) {
-  const [sg, bg] = await Promise.all([loadPak(new URL('./models/surfer.pak?v=aaf4de57ce', import.meta.url), 'surfer'),
-                                      loadPak(new URL('./models/board.pak?v=aaf4de57ce', import.meta.url), 'board')]);
+// opts.kit: 'cold' (Mavericks: hood, gloves, booties, vest) or 'warm' (Teahupo'o: the vest only)
+export async function upgradeRider(rider, opts = {}) {
+  const warm = opts.kit === 'warm';
+  const [sg, bg] = await Promise.all([loadPak(new URL('./models/surfer.pak?v=3b3873500c', import.meta.url), 'surfer'),
+                                      loadPak(new URL('./models/board.pak?v=3b3873500c', import.meta.url), 'board')]);
   const G = rider.group, P = rider.parts;
 
   // ---- the board ----
@@ -147,9 +149,11 @@ export async function upgradeRider(rider) {
   const X = i => bp.getX(i), Y = i => bp.getY(i), Z = i => bp.getZ(i);
   // the hood: head and neck, with an oval opening for the face
   const face = i => Z(i) > 0.045 && (X(i) / 0.068) ** 2 + ((Y(i) - 1.665) / 0.098) ** 2 < 1;
-  shell(i => Y(i) > 1.5 && !face(i) && share(i, ARM) < 0.2, 0.006, 0x101215, 0.5);
-  shell(i => share(i, HAND) > 0.5, 0.004, 0x101215, 0.55);                // gloves
-  shell(i => Y(i) < 0.13, 0.005, 0x101215, 0.6);                            // booties
+  if (!warm) {
+    shell(i => Y(i) > 1.5 && !face(i) && share(i, ARM) < 0.2, 0.006, 0x101215, 0.5);
+    shell(i => share(i, HAND) > 0.5, 0.004, 0x101215, 0.55);              // gloves
+    shell(i => Y(i) < 0.13, 0.005, 0x101215, 0.6);                          // booties
+  }
   shell(i => Y(i) > 1.06 && Y(i) < 1.46 && share(i, ARM) < 0.25, 0.017, 0xc8321e, 0.62);   // the vest
   const NL = 18, leashPos = new Float32Array(NL * 3);
   const leashGeo = new THREE.BufferGeometry(); leashGeo.setAttribute('position', new THREE.BufferAttribute(leashPos, 3));

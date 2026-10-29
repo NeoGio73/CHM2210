@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teahupo'o Big Wave</title>
+<!-- Teahupo'o's own address: published as teahupoo/index.html next to mavericks/ (tools/publish.mjs),
+     it opens the same game on the Teahupo'o spot, keeping any other options (?view=, ?day=). -->
+<meta http-equiv="refresh" content="0; url=../mavericks/?spot=teahupoo">
+<script>
+  const q = new URLSearchParams(location.search); q.set('spot', 'teahupoo');
+  location.replace('../mavericks/?' + q.toString());
+</script>
+<style>body { font: 16px system-ui, sans-serif; margin: 2rem; background: #0b2a3a; color: #e8f1f5; } a { color: #8fd3ff; }</style>
+</head>
+<body>
+<p>Opening Teahupo'o… If nothing happens, <a href="../mavericks/?spot=teahupoo">follow this link</a>.</p>
+</body>
+</html>

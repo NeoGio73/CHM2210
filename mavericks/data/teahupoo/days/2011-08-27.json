@@ -1,0 +1,130 @@
+{
+ "day": "2011-08-27",
+ "label": "27 August 2011, \"Code Red\", 8 am",
+ "site": "Teahupo'o",
+ "case": "codered_2011-08-27T18",
+ "buoy": {
+  "Hs_m": 4.42,
+  "period_s": 19.6,
+  "from_deg": 193.0,
+  "source": "IFREMER WAVEWATCH III hindcast; no wave buoy near Tahiti"
+ },
+ "tide_m_above_MLLW": 0.0,
+ "tide_m_navd88": 0.0,
+ "tide_note": "tide about mean sea level (the range here is only 0.1-0.3 m)",
+ "seabed_note": "SHOM's 20 m model, 100 m offshore; the ledge as published (Shand 2024)",
+ "travel_deg_ccw_from_east": 63.75248684404746,
+ "set_wave": {
+  "height_m": 7.5,
+  "height_max_m": 8.5,
+  "depth_m": 9.3,
+  "speed_m_s": 12.8
+ },
+ "average_wave": {
+  "height_m": 5.2,
+  "depth_m": 6.1,
+  "speed_m_s": 10.5
+ },
+ "break": {
+  "hand": -1,
+  "corner": [
+   100,
+   80
+  ],
+  "du_dv": 1.6,
+  "wall_m": 150,
+  "back_m": 40,
+  "shallow_wall": 0,
+  "strip_half_m": 105,
+  "lip": {
+   "throw": 1.2,
+   "thick": 0.24,
+   "trough": 0.3,
+   "lip_s": 2.5
+  },
+  "channel_view": {
+   "at": [
+    -50,
+    190,
+    3
+   ],
+   "look": [
+    110,
+    110,
+    3.5
+   ],
+   "fov": 40
+  },
+  "source": "a left on the reef east of Passe Hava'e, peeling north-west into the pass's channel (Shand 2024; published positions)"
+ },
+ "sun": {
+  "when_utc": "2011-08-27T18:00",
+  "elevation_deg": 24.7,
+  "azimuth_deg": 69.3
+ },
+ "look": {
+  "deep": [
+   0.01,
+   0.085,
+   0.19
+  ],
+  "shallow": [
+   0.04,
+   0.36,
+   0.36
+  ],
+  "glow": [
+   0.06,
+   0.42,
+   0.4
+  ],
+  "faceLift": 1.9,
+  "kit": "warm",
+  "land": {
+   "sand": [
+    0.74,
+    0.69,
+    0.55
+   ],
+   "rock": [
+    0.2,
+    0.2,
+    0.18
+   ],
+   "scrub": [
+    0.1,
+    0.26,
+    0.08
+   ],
+   "wet": [
+    0.24,
+    0.22,
+    0.17
+   ]
+  },
+  "haze": {
+   "skyZenith": [
+    0.17,
+    0.35,
+    0.66
+   ],
+   "skyHorizon": [
+    0.68,
+    0.75,
+    0.82
+   ],
+   "fogColor": [
+    0.64,
+    0.72,
+    0.8
+   ],
+   "fogDensity": 0.00016,
+   "ambient": 1.1,
+   "glint": 0.9,
+   "sheen": 0.4,
+   "turbidity": 3,
+   "rayleigh": 1.6,
+   "mie": 0.005
+  }
+ }
+}

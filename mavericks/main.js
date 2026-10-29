@@ -4,26 +4,35 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Breaker, LIP, LIP_TIP, CREST, NP } from './breaker.js?v=aaf4de57ce';
-import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js?v=aaf4de57ce';
-import { Reflection } from './reflect.js?v=aaf4de57ce';
-import { upgradeRider } from './surfer.js?v=aaf4de57ce';
-import * as Swell from './swell.js?v=aaf4de57ce';
-import { Board, buildRider } from './rider.js?v=aaf4de57ce';
-import { Sound } from './sound.js?v=aaf4de57ce';
-import { buildLandmarks } from './landmarks.js?v=aaf4de57ce';
+import { Breaker, LIP, LIP_TIP, CREST, NP, setStripHalfWidth, SHAPE, setLipShape } from './breaker.js?v=3b3873500c';
+import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js?v=3b3873500c';
+import { Reflection } from './reflect.js?v=3b3873500c';
+import { upgradeRider } from './surfer.js?v=3b3873500c';
+import * as Swell from './swell.js?v=3b3873500c';
+import { Board, buildRider } from './rider.js?v=3b3873500c';
+import { Sound } from './sound.js?v=3b3873500c';
+import { buildLandmarks } from './landmarks.js?v=3b3873500c';
 
 const $ = id => document.getElementById(id);
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-// the day: ?day=2017-01-21 (one of data/days.json); the default is 11 December 2015
+// the spot: ?spot=teahupoo (its data in data/teahupoo/); none: Mavericks, in data/
+// the day: ?day=2017-01-21 (one of that spot's days.json); the default is its wave.json
+const SPOT = (new URLSearchParams(location.search).get('spot') || '').replace(/[^a-z]/g, '');
 const DAY = new URLSearchParams(location.search).get('day');
+const D = SPOT ? `data/${SPOT}/` : 'data/';
 const [wave, tmeta, tbuf, dayList] = await Promise.all([
-  fetch(DAY && /^[0-9-]+$/.test(DAY) ? `data/days/${DAY}.json?v=aaf4de57ce` : 'data/wave.json?v=aaf4de57ce').then(r => r.ok ? r.json() : fetch('data/wave.json?v=aaf4de57ce').then(q => q.json())),
-  fetch('data/terrain.json?v=aaf4de57ce').then(r => r.json()),
-  fetch('data/terrain.bin?v=aaf4de57ce').then(r => r.arrayBuffer()),
-  fetch('data/days.json?v=aaf4de57ce').then(r => r.json()).catch(() => []),
+  fetch(DAY && /^[0-9-]+$/.test(DAY) ? `${D}days/${DAY}.json?v=3b3873500c` : `${D}wave.json?v=3b3873500c`).then(r => r.ok ? r.json() : fetch(`${D}wave.json?v=3b3873500c`).then(q => q.json())),
+  fetch(`${D}terrain.json?v=3b3873500c`).then(r => r.json()),
+  fetch(`${D}terrain.bin?v=3b3873500c`).then(r => r.arrayBuffer()),
+  fetch(`${D}days.json?v=3b3873500c`).then(r => r.json()).catch(() => []),
 ]);
+// how the break is laid out; Mavericks' values (below) when the spot's data leaves them out
+const BRK = wave.break || {};
+// how far each wave's strip reaches either side of its crest (160 m at Mavericks)
+const STRIP = BRK.strip_half_m ?? 160; setStripHalfWidth(STRIP);
+// the lip's shape and timing (breaker.js SHAPE, LIP); Mavericks' when the spot gives none
+setLipShape(BRK.lip || {});
 const terr = new Float32Array(tbuf);
 const SEA = wave.tide_m_navd88;                         // water level, m above NAVD88
 
@@ -33,15 +42,19 @@ const T = wave.buoy.period_s;
 const HSET = wave.set_wave.height_m;
 const NSET = 4;                                         // at most four waves in a set (one strip each)
 const A = THREE.MathUtils.degToRad(wave.travel_deg_ccw_from_east);
-const DIR = [Math.cos(A), Math.sin(A)], NRM = [-Math.sin(A), Math.cos(A)];
+// HAND: 1 a right-hander (Mavericks), -1 a left (Teahupo'o). The code calls the way the wall runs
+// "south" (v falling): NRM points against the wall, so for a left it is turned round, and the
+// peel, the camera and the assist all follow the wall whichever way it goes.
+const HAND = BRK.hand ?? 1;
+const DIR = [Math.cos(A), Math.sin(A)], NRM = [-Math.sin(A) * HAND, Math.cos(A) * HAND];
 // the takeoff ("the Corner"): the north end of the model's break line on the 2015 run, 67 m east and
 // 45 m north of the published spot. It is a place on the reef, so on other days (swells from other
 // directions) it stays there and only the wave's frame turns round it.
-const CORNER = [67.2, 44.5];
+const CORNER = BRK.corner ?? [67.2, 44.5];
 const U_PK = CORNER[0] * DIR[0] + CORNER[1] * DIR[1], V_PK = CORNER[0] * NRM[0] + CORNER[1] * NRM[1];
-const DUDV = 2.0;                                       // the break point runs 1 m along the crest per 2 m the wave travels
-const WALL = 220;                                       // metres of wall to the south before the channel
-const LEFT = 90;                                        // the short left to the north
+const DUDV = BRK.du_dv ?? 2.0;                          // the break point runs 1 m along the crest per 2 m the wave travels
+const WALL = BRK.wall_m ?? 220;                         // metres of wall before the channel
+const LEFT = BRK.back_m ?? 90;                          // the short break the other way from the takeoff
 const U0 = -460, U_END = 1300;
 const PEEL = C / DUDV;
 
@@ -81,13 +94,20 @@ const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 30
 const el = THREE.MathUtils.degToRad(wave.sun.elevation_deg), az = THREE.MathUtils.degToRad(wave.sun.azimuth_deg);
 const sunDir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
 common.uSunDir.value.copy(sunDir);
+// the spot's own look (wave.look): water colours and light, over the palette in water.js
+const LOOK = wave.look || {}, HZ = { ...PALETTE.haze, ...(LOOK.haze || {}) };
+const setC = (u, c) => { if (c) u.value.setRGB(c[0], c[1], c[2]); };
+setC(common.uDeep, LOOK.deep); setC(common.uShallow, LOOK.shallow); setC(common.uGlow, LOOK.glow);
+if (LOOK.faceLift) common.uFaceLift.value = LOOK.faceLift;
+setC(common.uSkyZenith, HZ.skyZenith); setC(common.uSkyHorizon, HZ.skyHorizon); setC(common.uFogColor, HZ.fogColor);
+common.uFogDensity.value = HZ.fogDensity; common.uAmbient.value = HZ.ambient; common.uGlint.value = HZ.glint; common.uSheen.value = HZ.sheen;
 common.uSea.value = SEA;
 
 const sky = new Sky(); sky.scale.setScalar(20000);
 Object.assign(sky.material.uniforms, {});
-sky.material.uniforms.turbidity.value = PALETTE.haze.turbidity;
-sky.material.uniforms.rayleigh.value = PALETTE.haze.rayleigh;
-sky.material.uniforms.mieCoefficient.value = PALETTE.haze.mie;
+sky.material.uniforms.turbidity.value = HZ.turbidity;
+sky.material.uniforms.rayleigh.value = HZ.rayleigh;
+sky.material.uniforms.mieCoefficient.value = HZ.mie;
 sky.material.uniforms.mieDirectionalG.value = 0.8;
 sky.material.uniforms.sunPosition.value.copy(sunDir);
 scene.add(sky);
@@ -100,14 +120,16 @@ scene.environment = pmrem.fromScene(skyScene).texture;
 const sun = new THREE.DirectionalLight(0xffe2c4, 2.2); sun.position.copy(sunDir).multiplyScalar(1000); scene.add(sun);
 scene.add(new THREE.HemisphereLight(0x9ab8d8, 0x4a4030, 0.6));
 // the same haze over the cliffs, rocks and surfer as over the water (the sky dome stays clear of it)
-scene.fog = new THREE.FogExp2(common.uFogColor.value.clone(), PALETTE.haze.fogDensity);
+scene.fog = new THREE.FogExp2(common.uFogColor.value.clone(), HZ.fogDensity);
 
 // ---- terrain: land and rocks (the seabed is under the opaque sea) ----
 {
   const S = 2, nx = Math.floor((tmeta.nx - 1) / S) + 1, ny = Math.floor((tmeta.ny - 1) / S) + 1;
   const pos = new Float32Array(nx * ny * 3), col = new Float32Array(nx * ny * 3);
-  const cSand = new THREE.Color(0.62, 0.55, 0.42), cRock = new THREE.Color(0.32, 0.29, 0.25),
-        cScrub = new THREE.Color(0.36, 0.38, 0.22), cWet = new THREE.Color(0.18, 0.16, 0.13), c = new THREE.Color();
+  // the land's colours: Mavericks' dry bluffs, or the spot's own (wave.look.land)
+  const LC = LOOK.land || {}, col3 = (a, d) => new THREE.Color(...(a || d));
+  const cSand = col3(LC.sand, [0.62, 0.55, 0.42]), cRock = col3(LC.rock, [0.32, 0.29, 0.25]),
+        cScrub = col3(LC.scrub, [0.36, 0.38, 0.22]), cWet = col3(LC.wet, [0.18, 0.16, 0.13]), c = new THREE.Color();
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const x = tmeta.x0 + i * S * tmeta.cell, y = tmeta.y0 + j * S * tmeta.cell, z = terr[(j * S) * tmeta.nx + i * S];
     const k = j * nx + i; pos[3 * k] = x; pos[3 * k + 1] = Math.max(z, SEA - 30); pos[3 * k + 2] = -y;
@@ -132,7 +154,7 @@ scene.fog = new THREE.FogExp2(common.uFogColor.value.clone(), PALETTE.haze.fogDe
 }
 
 // ---- the rocks inside the break and the station on Pillar Point (landmarks.js) ----
-const marks = buildLandmarks(scene, { elev, W3, sea: SEA });
+const marks = SPOT ? { wash() {} } : buildLandmarks(scene, { elev, W3, sea: SEA });   // Mavericks' own rocks
 
 // ---- depth and foam maps for the water shaders ----
 {
@@ -170,7 +192,7 @@ for (const o of oceans) o.material.uniforms.uDir.value.set(DIR[0], DIR[1]);
 // reflections: the scene mirrored in the sea's flat surface, minus the sea and the sky dome
 var refl = new Reflection(renderer, scene, SEA, [...oceans, sky]);
 refl.setScale(PALETTE.reflectSize[Q.level]);
-common.uCrest.value.set(NRM[0], NRM[1]);
+common.uCrest.value.set(NRM[0], NRM[1]); common.uSeaDir.value.set(DIR[0], DIR[1]);
 // the background sea's height at a point, as the shader works it out
 const bg = (x, y) => { const f = Swell.fade(SEA - elev(x, y), x, y); return f > 0 ? f * Swell.height(x, y, clock) : 0; };
 
@@ -259,7 +281,7 @@ function surface(x, y, near) {
   const a = Math.min(1, Math.max(0, (v - stations[lo]) / (stations[hi] - stations[lo])));
   let h = null;                                          // a strip's surface already includes the background sea
   for (const b of waves) {
-    if (!b.active || Math.abs(u - b.u) > 150) continue;
+    if (!b.active || Math.abs(u - b.u) > STRIP - 10) continue;
     const y1 = b.heightAt(lo, u - b.u, FR, near), y3 = b.heightAt(hi, u - b.u, FR, near);
     const y2 = y1 === null ? y3 : y3 === null ? y1 : y1 * (1 - a) + y3 * a;
     if (y2 !== null && (h === null || (near === undefined ? y2 > h : Math.abs(y2 - near) < Math.abs(h - near)))) h = y2;
@@ -272,7 +294,7 @@ function waveAt(x, y) {
   const s = stationAt(v);
   let best = null;
   for (const b of waves) {
-    if (!b.active || Math.abs(u - b.u) > 150) continue;
+    if (!b.active || Math.abs(u - b.u) > STRIP - 10) continue;
     if (!best || Math.abs(u - b.u) < Math.abs(best.xrel)) best = { b, s, v, xrel: u - b.u, tau: b.tau[s], H: b.H[s], power: breakPower(v) };
   }
   return best;
@@ -323,7 +345,7 @@ function updateWaves(t) {
         if (isNaN(b.broke[s])) {
           if (bl.real && u >= bl.u) b.broke[s] = t - (u - bl.u) / C;   // the break on the reef
           // too shallow for it: it breaks here (on the wall itself only over the rocks inside, so the peel stays in order)
-          else if (depth < H / 0.78 * (bl.real ? 0.6 : 0.95) && depth > 0.3 && u > -200) b.broke[s] = t;
+          else if (depth < H / 0.78 * (bl.real ? (BRK.shallow_wall ?? 0.6) : 0.95) && depth > 0.3 && u > -200) b.broke[s] = t;
         }
         let tau = isNaN(b.broke[s]) ? (u - bl.u) / C : t - b.broke[s];
         if (isNaN(b.broke[s]) && !bl.real && tau > -0.6) tau = -0.6 - (tau + 0.6) * 0.8;   // the channel: it backs off
@@ -334,7 +356,7 @@ function updateWaves(t) {
   }
   for (const o of oceans) {
     const bands = o.material.uniforms.uBands.value;
-    waves.forEach((b, i) => bands[i].set(b.u, 152, b.active ? 1 : 0, 0));
+    waves.forEach((b, i) => bands[i].set(b.u, STRIP - 8, b.active ? 1 : 0, 0));
   }
 }
 
@@ -537,7 +559,11 @@ function setView(name) {
   document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
   const look = W3(peakXY[0] + 40, peakXY[1] - 60, SEA + 6);
   if (name === 'cliff') { camera.position.copy(W3(cliff.x, cliff.y, cliff.z + 2)); camera.fov = 16; camera.lookAt(look); }   // a long lens, as photographers there use
-  if (name === 'channel') { const [x, y] = toXY(240, V_PK - WALL - 140); camera.position.copy(W3(x, y, SEA + 5)); camera.fov = 45; camera.lookAt(W3(peakXY[0], peakXY[1] - 60, SEA + 8)); }
+  if (name === 'channel') {
+    const cv = BRK.channel_view;                         // the spot's own (x, y, height above the sea; metres)
+    if (cv) { camera.position.copy(W3(cv.at[0], cv.at[1], SEA + cv.at[2])); camera.fov = cv.fov || 45; camera.lookAt(W3(cv.look[0], cv.look[1], SEA + cv.look[2])); }
+    else { const [x, y] = toXY(240, V_PK - WALL - 140); camera.position.copy(W3(x, y, SEA + 5)); camera.fov = 45; camera.lookAt(W3(peakXY[0], peakXY[1] - 60, SEA + 8)); }
+  }
   if (name === 'lineup') { const [x, y] = toXY(U_PK - 70, V_PK - 25); camera.position.copy(W3(x, y, SEA + 1.2)); camera.fov = 60; camera.lookAt(W3(x - 400, y + 30, SEA + 6)); }
   if (name === 'aerial') { camera.position.copy(W3(peakXY[0] - 380, peakXY[1] - 520, SEA + 210)); camera.fov = 50; camera.lookAt(W3(peakXY[0] + 260, peakXY[1] + 160, SEA)); }
   if (name === 'ride') camera.fov = 72;
@@ -574,7 +600,7 @@ function updateRide(dt) {
 // ---- the surfer ----
 const rider = buildRider(); scene.add(rider.group);
 // the bought surfer and board, once they have loaded (until then, and if they fail, the simple shapes)
-upgradeRider(rider).catch(e => console.warn('surfer model not loaded, keeping the simple figure:', e));
+upgradeRider(rider, { kit: LOOK.kit || 'cold' }).catch(e => console.warn('surfer model not loaded, keeping the simple figure:', e));
 const board = new Board();
 const keys = {};
 const touch = { left: false, right: false, paddle: false };
@@ -620,7 +646,7 @@ function assist(bd) {
 }
 
 // what the wave does to the surfer: catching it, the barrel, the wipeouts, the channel
-const LANDING = (H, power) => Math.max(0.78 * H * power, 1.5) + 1;
+const LANDING = (H, power) => Math.max(SHAPE.throw * H * power, 1.5) + 1;
 function judge(dt) {
   const w = waveAt(board.x, board.y);
   const vAlong = board.vx * DIR[0] + board.vy * DIR[1];
@@ -637,7 +663,7 @@ function judge(dt) {
       const sp = Math.max(board.speed, 0.92 * C);           // the drop: free fall down the top of the face
       board.vx = Math.cos(board.heading) * sp; board.vy = Math.sin(board.heading) * sp;
       board.ride = { start: clock, v0: vCrest, barrel: 0, wave: w.b.k + 1, H: w.b.H0, set: setNow() };
-      board.msg = 'You\'re in! Stand up and go right (south) along the wall: ← and → steer.';
+      board.msg = `You're in! Stand up and go ${HAND > 0 ? 'right' : 'left'} along the wall: ← and → steer.`;
       return;
     }
     if (w.tau > -0.3 && w.tau < LIP + 0.4 && w.xrel > -4 && w.xrel < 0.45 * w.H && board.h > 0.6 * w.H && w.power > 0.4)
@@ -909,7 +935,7 @@ let gLast = '';
 function gauges(mph) {
   const r = board.ride, w = waveAt(board.x, board.y), riding = board.mode === 'ride';
   const t = r ? Math.min(clock, r.end ?? clock) - r.start : 0;
-  const H = w && Math.abs(w.xrel) < 150 ? w.H : null;
+  const H = w && Math.abs(w.xrel) < STRIP - 10 ? w.H : null;
   const vals = [
     mph.toFixed(0), `${(mph * 1.609).toFixed(0)} km/h`,
     board.topSpeed > 0 ? `${(board.topSpeed * 2.237).toFixed(0)} mph` : '–',
@@ -928,16 +954,26 @@ function gauges(mph) {
 }
 
 // ---- interface ----
-document.title = `Mavericks, ${wave.label || '11 December 2015'}`;
-$('title').textContent = `Mavericks, ${wave.label || '11 December 2015, morning'}`;
+const SITE = wave.site || 'Mavericks';
+document.title = `${SITE}, ${wave.label || '11 December 2015'}`;
+$('title').textContent = `${SITE}, ${wave.label || '11 December 2015, morning'}`;
 if (dayList.length) {
   $('day').innerHTML = dayList.map(d => `<option value="${d.day}">${d.label}: buoy ${d.Hs_m} m, sets about ${Math.round(d.set_m)} m</option>`).join('');
   $('day').value = wave.day || dayList[0].day;
   $('day').onchange = () => { const q = new URLSearchParams(location.search); q.set('day', $('day').value); q.delete('t'); location.search = q.toString(); };
 } else $('day').hidden = true;
-$('buoy').textContent = `${wave.buoy.Hs_m} m at ${wave.buoy.period_s} s from ${wave.buoy.from_deg}° (Half Moon Bay buoy 46012); tide ${wave.tide_m_above_MLLW} m above low water`;
-$('note').textContent = `Seabed: NOAA's 3 m survey. Size, speed and where it breaks: the wave model run on that swell. ` +
-  `Peels right (south) along a ${WALL} m wall, as published. The break point runs at ${PEEL.toFixed(1)} m/s, so a surfer must go about ` +
+// the spot: a menu beside the day's
+{
+  const sel = document.createElement('select'); sel.id = 'spot'; sel.className = $('day').className; sel.setAttribute('aria-label', 'Surf spot');
+  sel.innerHTML = [['', 'Mavericks, California'], ['teahupoo', "Teahupo'o, Tahiti"]].map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  sel.value = SPOT; sel.style.cssText = 'display:block;margin-bottom:6px;';
+  sel.onchange = () => { const q = new URLSearchParams(location.search); if (sel.value) q.set('spot', sel.value); else q.delete('spot'); q.delete('day'); q.delete('t'); location.search = q.toString(); };
+  $('day').before(sel);
+}
+$('buoy').textContent = `${wave.buoy.Hs_m} m at ${wave.buoy.period_s} s from ${wave.buoy.from_deg}° (${wave.buoy.source || 'Half Moon Bay buoy 46012'}); ` +
+  (wave.tide_note || `tide ${wave.tide_m_above_MLLW} m above low water`);
+$('note').textContent = `Seabed: ${wave.seabed_note || "NOAA's 3 m survey"}. Size, speed and where it breaks: the wave model run on that swell. ` +
+  `Peels ${HAND > 0 ? 'right' : 'left'} along a ${WALL} m wall, as published. The break point runs at ${PEEL.toFixed(1)} m/s, so a surfer must go about ` +
   `${Math.hypot(C, PEEL).toFixed(0)} m/s (${(Math.hypot(C, PEEL) * 2.237).toFixed(0)} mph).`;
 document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { rideCam.ok = false; setView(b.dataset.view); $('bar').classList.remove('open'); $('menu').setAttribute('aria-expanded', 'false'); });
 renderer.domElement.addEventListener('pointerdown', () => { $('bar').classList.remove('open'); $('menu').setAttribute('aria-expanded', 'false'); });

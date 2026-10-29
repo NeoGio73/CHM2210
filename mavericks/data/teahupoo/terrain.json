@@ -1,0 +1,10 @@
+{
+ "nx": 501,
+ "ny": 701,
+ "x0": -2500.0,
+ "y0": -2500.0,
+ "cell": 10.0,
+ "rows": "south first",
+ "units": "m from mean sea level",
+ "source": "SHOM MNT topo-bathymetrique cotier de Tahiti 20 m (2023) and MNT de facade 100 m, Licence Ouverte 2.0"
+}
