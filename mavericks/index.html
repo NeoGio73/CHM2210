@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mavericks Big Wave</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b1620; color: #e8eef2; font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  [hidden] { display: none !important; }
+  #hud { position: absolute; left: 12px; top: 12px; max-width: 340px; background: rgba(8, 18, 26, .72); padding: 10px 12px; border-radius: 8px; }
+  #hud h1 { font-size: 16px; margin: 0 0 4px; }
+  #hud p { margin: 4px 0; color: #b9c8d2; font-size: 12.5px; }
+  #day { max-width: 100%; background: #0e2230; color: #e8eef2; border: 1px solid #3a5566; border-radius: 6px; padding: 3px 6px; font: inherit; font-size: 12.5px; }
+  #hud .num { font-variant-numeric: tabular-nums; color: #fff; }
+  #bar { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  #bar button { background: rgba(8, 18, 26, .8); color: #e8eef2; border: 1px solid #3a5566; border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  #bar button.on { background: #1d6e86; border-color: #5fb6cc; }
+  #bar .sep { width: 10px; }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 16px; }
+  #ride { position: absolute; right: 12px; top: 12px; max-width: 360px; background: rgba(8, 18, 26, .72); padding: 10px 12px; border-radius: 8px; }
+  #rideState { font-weight: 600; font-variant-numeric: tabular-nums; }
+  #rideMsg { margin-top: 4px; color: #d7e3ea; font-size: 13px; }
+  #ride .keys { margin-top: 6px; color: #9fb3c0; font-size: 12px; }
+  /* the ride's gauges: large, at the lower left */
+  #gauges { position: absolute; left: 12px; bottom: 60px; background: rgba(8, 18, 26, .78); padding: 10px 16px 12px; border-radius: 10px; font-variant-numeric: tabular-nums; min-width: 250px; border: 2px solid transparent; transition: border-color .2s, background .2s; }
+  #gauges.barrel { border-color: #5fd0e6; background: rgba(10, 50, 66, .85); }
+  #gauges .big { display: flex; align-items: baseline; gap: 8px; }
+  #gSpeed { font-size: 56px; font-weight: 700; line-height: 1; color: #fff; }
+  #gauges .unit { font-size: 20px; color: #b9c8d2; }
+  #gauges .sub { font-size: 15px; color: #9fb3c0; margin-left: 4px; }
+  #gauges dl { display: grid; grid-template-columns: auto auto; gap: 2px 18px; margin: 8px 0 0; font-size: 20px; }
+  #gauges dt { color: #9fb3c0; }
+  #gauges dd { margin: 0; color: #fff; font-weight: 600; text-align: right; }
+  #gBarrelNow { font-size: 18px; font-weight: 700; color: #7fe3f5; letter-spacing: .08em; margin-top: 4px; }
+  #pad { position: absolute; right: 12px; bottom: 60px; display: flex; gap: 8px; }
+  #pad > div { display: flex; gap: 8px; }
+  #pad .act .small { display: flex; gap: 8px; }
+  #pad button { background: rgba(8, 18, 26, .8); color: #e8eef2; border: 1px solid #3a5566; border-radius: 10px; padding: 14px 16px; font: inherit; font-size: 16px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #pad button.on, #pad button.held { background: #1d6e86; border-color: #5fb6cc; }
+  #menu { display: none; }
+  #replayBtn { margin-top: 8px; background: #1d6e86; color: #fff; border: 1px solid #5fb6cc; border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  #replayBar { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; z-index: 6; }
+  #replayBar > span { background: rgba(8, 18, 26, .8); padding: 6px 10px; border-radius: 6px; font-weight: 600; }
+  #replayBar button { background: rgba(8, 18, 26, .8); color: #e8eef2; border: 1px solid #3a5566; border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  #replayBar button.on { background: #1d6e86; border-color: #5fb6cc; }
+  body:has(#replayBar:not([hidden])) #bar { display: none; }
+  /* phones and tablets: game controls at the thumbs, the views behind a menu, short panels */
+  @media (pointer: coarse), (max-width: 700px), (max-height: 500px) {
+    body { font-size: 13px; -webkit-user-select: none; user-select: none; }
+    #hud { left: 8px; top: 8px; right: auto; max-width: min(46vw, 330px); padding: 6px 9px; }
+    #hud h1 { font-size: 13px; }
+    #hud p { font-size: 11.5px; margin: 2px 0; }
+    #hud p#note, #hud p:first-of-type { display: none; }
+    #ride { left: auto; right: 8px; top: 8px; bottom: auto; max-width: min(48vw, 360px); padding: 6px 9px; }
+    #rideMsg { font-size: 12px; }
+    #ride .keys { display: none; }
+    #bar { left: 8px; right: auto; top: auto; bottom: auto; top: calc(8px + var(--hudH, 64px)); flex-direction: column; align-items: flex-start; gap: 4px; }
+    #bar button { padding: 6px 10px; }
+    #bar:not(.open) > :not(#menu) { display: none; }
+    #bar.open { flex-direction: row; flex-wrap: wrap; max-width: min(92vw, 520px); z-index: 5; background: rgba(8, 18, 26, .85); padding: 6px; border-radius: 8px; }
+    #menu { display: block; }
+    #bar .sep { display: none; }
+    #pad { left: 8px; right: 8px; bottom: max(10px, env(safe-area-inset-bottom)); justify-content: space-between; align-items: flex-end; pointer-events: none; }
+    #pad button { pointer-events: auto; }
+    #pad .steer button { width: 74px; height: 74px; font-size: 26px; padding: 0; }
+    #pad .act { flex-direction: column; align-items: flex-end; }
+    #pad .act .small button { padding: 7px 10px; font-size: 13px; }
+    #padP { width: 120px; height: 74px; font-size: 19px; }
+    #gauges { left: 8px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 84px); min-width: 0; padding: 6px 10px 8px; }
+    #gSpeed { font-size: 38px; }
+    #gauges .unit { font-size: 15px; }
+    #gauges .sub { font-size: 12px; }
+    #gauges dl { font-size: 14px; gap: 1px 12px; margin-top: 4px; }
+    #gBarrelNow { font-size: 14px; }
+  }
+  @media (max-height: 500px) {
+    #gauges dl { grid-template-columns: auto auto auto auto; }
+    #gauges dl dt:nth-of-type(2n) { margin-left: 8px; }
+  }
+  @media (max-width: 500px) {
+    #hud { max-width: none; right: 8px; }
+    #ride { top: auto; left: 8px; right: 8px; bottom: 150px; max-width: none; }
+    #gauges { bottom: auto; top: calc(16px + var(--hudH, 64px) + 40px); }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="loading">Loading the reef…</div>
+<div id="hud" hidden>
+  <h1 id="title">Mavericks, 11 December 2015, morning</h1>
+  <p>Buoy: <span class="num" id="buoy"></span></p>
+  <p>This wave: <span class="num" id="wave">waiting for the set</span></p>
+  <p id="note"></p>
+  <p><select id="day" aria-label="Day"></select></p>
+</div>
+<div id="ride" hidden>
+  <div id="rideState"></div>
+  <div id="rideMsg"></div>
+  <button id="replayBtn" hidden>Watch the replay (V)</button>
+  <div class="keys">↑ or W: paddle · ← → or A D: turn and carve · R: back to the lineup · ¼ speed helps at first</div>
+</div>
+<div id="gauges" hidden aria-live="off">
+  <div class="big"><span id="gSpeed">0</span><span class="unit">mph</span><span class="sub" id="gKmh">0 km/h</span></div>
+  <dl>
+    <dt>Top speed</dt><dd id="gTop">–</dd>
+    <dt>Wave</dt><dd id="gWave">–</dd>
+    <dt>Along the wall</dt><dd id="gDist">–</dd>
+    <dt>Ride time</dt><dd id="gTime">–</dd>
+    <dt>Barrel</dt><dd id="gBarrel">–</dd>
+  </dl>
+  <div id="gBarrelNow" hidden>IN THE BARREL</div>
+</div>
+<div id="pad" hidden>
+  <div class="steer"><button id="padL" aria-label="Turn left">◀</button><button id="padR" aria-label="Turn right">▶</button></div>
+  <div class="act">
+    <div class="small"><button id="assist" class="on" title="With no steering, hold the middle of the face and run along the wall">Assist</button><button id="padBack">Back out</button></div>
+    <button id="padP">Paddle</button>
+  </div>
+</div>
+<div id="replayBar" hidden>
+  <span>Replay <span class="num" id="replayTime"></span></span>
+  <button data-rcam="auto" class="on">Auto</button><button data-rcam="water">From the water</button><button data-rcam="cliff">From the cliff</button><button data-rcam="channel">From the channel</button>
+  <button id="rslow" class="on">Slow motion</button><button id="rexit">Back to the game (Esc)</button>
+</div>
+<div id="bar" hidden>
+  <button id="menu" aria-expanded="false">☰ Views</button>
+  <button data-view="surf">Surf</button>
+  <button data-view="cliff">From the cliff</button>
+  <button data-view="channel">From the channel</button>
+  <button data-view="lineup">In the lineup</button>
+  <button data-view="ride">Ride along</button>
+  <button data-view="aerial">Aerial</button>
+  <button data-view="free">Free look</button>
+  <span class="sep"></span>
+  <button id="pause">Pause</button>
+  <button data-speed="0.25">¼ speed</button>
+  <button data-speed="0.5">½</button>
+  <button data-speed="1" class="on">Real time</button>
+  <button id="nextset">Next set</button>
+  <button id="sound" class="on">Sound on</button>
+</div>
+<script type="module" src="main.js"></script>
+</body>
+</html>

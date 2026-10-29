@@ -1,0 +1,26 @@
+[
+ {
+  "day": "2015-12-11",
+  "label": "11 December 2015, morning",
+  "Hs_m": 6.61,
+  "set_m": 13.6
+ },
+ {
+  "day": "2017-01-21",
+  "label": "21 January 2017, early afternoon",
+  "Hs_m": 8.22,
+  "set_m": 15.7
+ },
+ {
+  "day": "2021-10-25",
+  "label": "25 October 2021, early afternoon",
+  "Hs_m": 6.82,
+  "set_m": 15.4
+ },
+ {
+  "day": "2023-01-05",
+  "label": "5 January 2023, morning",
+  "Hs_m": 7.85,
+  "set_m": 14.8
+ }
+]

@@ -15,6 +15,7 @@ list is here if you want to come back and practice.
 | Alkene reactions | [Chapter 8 Flashcards](https://neogio73.github.io/CHM2210/flashcards/ch08-alkenes.html) | 94 flip cards on alkene additions (HX, hydration, rearrangements, oxymercuration, hydroboration, X₂, halohydrins, epoxides, diols, cleavage, carbenes), some with rotatable 3D models; sort cards into "Got it" and "Review again" piles |
 | Alkyne reactions | [Chapter 9 Flashcards](https://neogio73.github.io/CHM2210/flashcards/ch09-alkynes.html) | 66 flip cards on alkynes (naming, preparation, X₂ and HX, hydration and tautomers, reductions, cleavage, acidity, alkylation, synthesis), some with rotatable 3D models |
 | Polymers | [Polymers & the Surf Zone](https://neogio73.github.io/CHM2210/polymers-surf-zone.html) | Chain-growth and step-growth polymers with monomer and repeat-unit structures, tacticity, rubber and copolymers; then the chemistry of surfboards and paddleboards, wave and board physics with slider labs, East Florida surf, tides and sharks, and practice problems with three help levels |
+| Waves (just for fun) | [Mavericks Big Wave](https://neogio73.github.io/CHM2210/mavericks/) | Surf Mavericks, Half Moon Bay, on four real big-swell days: the reef from NOAA's seabed survey, the waves from a wave model run on the buoy's readings; paddle in, drop, and ride the wall to the channel, with speed and wave height on screen, a replay, and phone controls |
 
 ## How the pages were used
 
@@ -42,6 +43,13 @@ home. The other two are for studying on your own; each ends with challenges.
   Jacobovitz ([CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)), Teahupo'o by Olivier
   Dugornay / Ifremer ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0)), both resized; the
   Mavericks bathymetry map is from the U.S. Geological Survey with the CSUMB Seafloor Mapping Lab.
+- Mavericks Big Wave lives in the `mavericks/` folder (`index.html`, its scripts and `data/`). It loads
+  [three.js](https://threejs.org/) (r169, MIT license) from jsDelivr; everything else is in the folder. The reef and the
+  cliffs are NOAA's CUDEM 1/9 arc-second topobathy model (public domain); the swell, tide and sun for each day come
+  from NOAA buoy 46012, NOAA's Pillar Point tide predictions and a wave model run on the seabed. Sail Rock is placed
+  from the Coast Guard's rule for the contest (33 CFR 100.1106); the other rocks and Pillar Point Air Force Station
+  were placed from public satellite pictures and shaped by hand. Some things are chosen rather than measured: the
+  peel speed, the length of the wall, the shape of the lip, and the height of the rocks.
 - The pages cite the sections of the open textbook they follow: [OpenStax Organic
   Chemistry](https://openstax.org/details/books/organic-chemistry), chapters 4 (cyclohexane), 5
   (stereochemistry), 8 and 9 (alkenes and alkynes), and 31 (synthetic polymers; radical polymerization

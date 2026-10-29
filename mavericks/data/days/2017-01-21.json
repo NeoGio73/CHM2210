@@ -1,0 +1,35 @@
+{
+ "day": "2017-01-21",
+ "label": "21 January 2017, early afternoon",
+ "case": "day_2017-01-21T21",
+ "buoy": {
+  "Hs_m": 8.22,
+  "period_s": 17.39,
+  "from_deg": 286.0
+ },
+ "tide_m_above_MLLW": 0.41,
+ "tide_m_navd88": 0.423,
+ "travel_deg_ccw_from_east": 1.7580008252081503,
+ "set_wave": {
+  "height_m": 15.7,
+  "height_max_m": 16.8,
+  "depth_m": 19.8,
+  "speed_m_s": 18.7
+ },
+ "average_wave": {
+  "height_m": 12.1,
+  "depth_m": 15.2,
+  "speed_m_s": 16.4
+ },
+ "peel": {
+  "direction": "right (south along the crest)",
+  "source": "published descriptions: takeoff at the Corner on the north end, a long wall to a deep channel",
+  "du_dv": 2.0,
+  "wall_m": 380
+ },
+ "sun": {
+  "when_utc": "2017-01-21T21:50",
+  "elevation_deg": 28.8,
+  "azimuth_deg": 204.0
+ }
+}

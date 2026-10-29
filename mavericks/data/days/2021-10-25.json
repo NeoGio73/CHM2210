@@ -1,0 +1,35 @@
+{
+ "day": "2021-10-25",
+ "label": "25 October 2021, early afternoon",
+ "case": "day_2021-10-25T20",
+ "buoy": {
+  "Hs_m": 6.82,
+  "period_s": 17.39,
+  "from_deg": 290.0
+ },
+ "tide_m_above_MLLW": 1.53,
+ "tide_m_navd88": 1.543,
+ "travel_deg_ccw_from_east": -0.8638027974160651,
+ "set_wave": {
+  "height_m": 15.4,
+  "height_max_m": 17.0,
+  "depth_m": 19.3,
+  "speed_m_s": 18.5
+ },
+ "average_wave": {
+  "height_m": 11.4,
+  "depth_m": 14.4,
+  "speed_m_s": 15.9
+ },
+ "peel": {
+  "direction": "right (south along the crest)",
+  "source": "published descriptions: takeoff at the Corner on the north end, a long wall to a deep channel",
+  "du_dv": 2.0,
+  "wall_m": 380
+ },
+ "sun": {
+  "when_utc": "2021-10-25T20:40",
+  "elevation_deg": 39.4,
+  "azimuth_deg": 194.6
+ }
+}

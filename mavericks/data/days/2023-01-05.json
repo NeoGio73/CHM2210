@@ -1,0 +1,35 @@
+{
+ "day": "2023-01-05",
+ "label": "5 January 2023, morning",
+ "case": "day_2023-01-05T18",
+ "buoy": {
+  "Hs_m": 7.85,
+  "period_s": 17.39,
+  "from_deg": 262.0
+ },
+ "tide_m_above_MLLW": 1.73,
+ "tide_m_navd88": 1.7429999999999999,
+ "travel_deg_ccw_from_east": 16.799341337863403,
+ "set_wave": {
+  "height_m": 14.8,
+  "height_max_m": 15.8,
+  "depth_m": 18.9,
+  "speed_m_s": 18.2
+ },
+ "average_wave": {
+  "height_m": 11.9,
+  "depth_m": 15.2,
+  "speed_m_s": 16.3
+ },
+ "peel": {
+  "direction": "right (south along the crest)",
+  "source": "published descriptions: takeoff at the Corner on the north end, a long wall to a deep channel",
+  "du_dv": 2.0,
+  "wall_m": 380
+ },
+ "sun": {
+  "when_utc": "2023-01-05T18:10",
+  "elevation_deg": 23.1,
+  "azimuth_deg": 148.7
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "day": "2015-12-11",
+ "label": "11 December 2015, morning",
+ "case": "dawn_2015-12-11T15",
+ "buoy": {
+  "Hs_m": 6.61,
+  "period_s": 17.39,
+  "from_deg": 284.0
+ },
+ "tide_m_above_MLLW": 1.36,
+ "tide_m_navd88": 1.373,
+ "travel_deg_ccw_from_east": 3.749980294078412,
+ "set_wave": {
+  "height_m": 13.6,
+  "height_max_m": 15.3,
+  "depth_m": 17.3,
+  "speed_m_s": 17.4
+ },
+ "average_wave": {
+  "height_m": 11.2,
+  "depth_m": 14.0,
+  "speed_m_s": 15.7
+ },
+ "peel": {
+  "direction": "right (south along the crest)",
+  "source": "published descriptions: takeoff at the Corner on the north end, a long wall to a deep channel",
+  "du_dv": 2.0,
+  "wall_m": 380
+ },
+ "sun": {
+  "when_utc": "2015-12-11T16:30",
+  "elevation_deg": 11.5,
+  "azimuth_deg": 131.1
+ }
+}
