@@ -4,14 +4,14 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Breaker, LIP, LIP_TIP, CREST, NP } from './breaker.js';
-import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js';
-import { Reflection } from './reflect.js';
-import { upgradeRider } from './surfer.js';
-import * as Swell from './swell.js';
-import { Board, buildRider } from './rider.js';
-import { Sound } from './sound.js';
-import { buildLandmarks } from './landmarks.js';
+import { Breaker, LIP, LIP_TIP, CREST, NP } from './breaker.js?v=aaf4de57ce';
+import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js?v=aaf4de57ce';
+import { Reflection } from './reflect.js?v=aaf4de57ce';
+import { upgradeRider } from './surfer.js?v=aaf4de57ce';
+import * as Swell from './swell.js?v=aaf4de57ce';
+import { Board, buildRider } from './rider.js?v=aaf4de57ce';
+import { Sound } from './sound.js?v=aaf4de57ce';
+import { buildLandmarks } from './landmarks.js?v=aaf4de57ce';
 
 const $ = id => document.getElementById(id);
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -19,10 +19,10 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 // the day: ?day=2017-01-21 (one of data/days.json); the default is 11 December 2015
 const DAY = new URLSearchParams(location.search).get('day');
 const [wave, tmeta, tbuf, dayList] = await Promise.all([
-  fetch(DAY && /^[0-9-]+$/.test(DAY) ? `data/days/${DAY}.json` : 'data/wave.json').then(r => r.ok ? r.json() : fetch('data/wave.json').then(q => q.json())),
-  fetch('data/terrain.json').then(r => r.json()),
-  fetch('data/terrain.bin').then(r => r.arrayBuffer()),
-  fetch('data/days.json').then(r => r.json()).catch(() => []),
+  fetch(DAY && /^[0-9-]+$/.test(DAY) ? `data/days/${DAY}.json?v=aaf4de57ce` : 'data/wave.json?v=aaf4de57ce').then(r => r.ok ? r.json() : fetch('data/wave.json?v=aaf4de57ce').then(q => q.json())),
+  fetch('data/terrain.json?v=aaf4de57ce').then(r => r.json()),
+  fetch('data/terrain.bin?v=aaf4de57ce').then(r => r.arrayBuffer()),
+  fetch('data/days.json?v=aaf4de57ce').then(r => r.json()).catch(() => []),
 ]);
 const terr = new Float32Array(tbuf);
 const SEA = wave.tide_m_navd88;                         // water level, m above NAVD88

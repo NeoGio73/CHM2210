@@ -5,7 +5,7 @@
 // it is left empty, and the water keeps its own sky there. Same method as three.js's
 // Reflector, which draws onto one mirror mesh of its own; here the existing water uses it.
 import * as THREE from 'three';
-import { common, PALETTE } from './water.js';
+import { common, PALETTE } from './water.js?v=aaf4de57ce';
 
 export class Reflection {
   // hide: objects not to draw in the mirror (the sea itself, the sky dome)

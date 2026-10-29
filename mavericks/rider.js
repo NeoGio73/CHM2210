@@ -14,7 +14,7 @@ import * as THREE from 'three';
 const G = 9.81;
 
 // the figure and its poses are in figure.js
-export { buildRider } from './figure.js';
+export { buildRider } from './figure.js?v=aaf4de57ce';
 
 // ---------- the physics ----------
 export class Board {

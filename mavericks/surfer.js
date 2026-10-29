@@ -11,7 +11,7 @@
 // neoprene hood, a red flotation vest, a leash from the tail to the back ankle. The board is the
 // bought board's shape only, painted here (BOARD_PAINT): the pack's own textures were not used.
 import * as THREE from 'three';
-import { loadPak } from './models.js';
+import { loadPak } from './models.js?v=aaf4de57ce';
 
 // The board's paint: change these and reload. Colours as CSS colours; null leaves a part out.
 // After his reference photo (29 October 2026): a lime-green gun, a thin dark line round the rails,
@@ -77,8 +77,8 @@ function boardUVs(geo) {
 }
 
 export async function upgradeRider(rider) {
-  const [sg, bg] = await Promise.all([loadPak(new URL('./models/surfer.pak', import.meta.url), 'surfer'),
-                                      loadPak(new URL('./models/board.pak', import.meta.url), 'board')]);
+  const [sg, bg] = await Promise.all([loadPak(new URL('./models/surfer.pak?v=aaf4de57ce', import.meta.url), 'surfer'),
+                                      loadPak(new URL('./models/board.pak?v=aaf4de57ce', import.meta.url), 'board')]);
   const G = rider.group, P = rider.parts;
 
   // ---- the board ----
