@@ -354,6 +354,12 @@ export function waveMaterial() {
         rough *= 1.0 - 0.8 * uSlicks * slick * onFlat * (1.0 - smoothstep(0.1, 0.4, vFoam));
         vec2 q = vec2(along * 0.35 / uStreak, across * 0.35 + up * 0.4) + vec2(uTime * 0.1, uTime * 0.6);
         float rx = vnoise(q) - 0.5, rz = vnoise(q + vec2(17.3, 5.1)) - 0.5;
+        // close to the camera, finer and stronger chop: the water near the board is what shows
+        // how fast you are going past it
+        float near = exp(-length(cameraPosition - vW) / 25.0) * (1.0 - smoothstep(0.3, 0.8, vFoam));
+        vec2 q2 = q * 3.7 + vec2(5.3, 1.7);
+        rx += near * 1.3 * (vnoise(q2) - 0.5); rz += near * 1.3 * (vnoise(q2 + vec2(9.1, 3.7)) - 0.5);
+        rough *= 1.0 + 0.8 * near;
         n = normalize(n + vec3(rx, 0.0, rz) * rough);
         float f = vFoam * (0.6 + 0.8 * vnoise(xy * 0.22 + vec2(0.0, vW.y * 0.3) + uTime * 0.2));
         f = smoothstep(0.12, 0.8, f);

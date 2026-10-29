@@ -39,7 +39,7 @@ export function buildRider() {
   stripe.position.set(-0.05, 0.02, 0);
   board.add(deck, stripe);
   for (const [x, z, h] of [[-1.35, 0, 0.17], [-1.2, 0.17, 0.12], [-1.2, -0.17, 0.12]]) {   // three fins under the tail
-    const f = new THREE.Mesh(new THREE.BoxGeometry(0.11, h, 0.012), white); f.position.set(x, -0.03 - h / 2, z); board.add(f);
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.11, h, 0.012), white); f.position.set(x, -0.03 - h / 2, z); f.userData.fin = true; board.add(f);
   }
 
   // black wetsuit and hood, a red flotation vest
@@ -70,13 +70,18 @@ export function buildRider() {
   const [armL, foreL] = arm(1), [armR, foreR] = arm(-1);
   const [thighL, shinL, footL] = leg(1), [thighR, shinR, footR] = leg(-1);
   const parts = { board, root, spine, neck, armL, foreL, armR, foreR, thighL, shinL, footL, thighR, shinR, footR };
-  return { group: board, parts, pose: st => pose(parts, st) };
+  // the simple shapes (all but the fins): surfer.js hides them once the bought models are loaded,
+  // and the groups above go on as an invisible skeleton that drives the model's
+  const shapes = []; board.traverse(o => { if (o.isMesh && !o.userData.fin) shapes.push(o); });
+  return { group: board, parts, shapes, pose: st => pose(parts, st) };
 }
 
 // ---- posing ----
 const QL = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, -Math.PI / 2, 'ZYX'));   // lying: head to the nose, front down
 const QS = new THREE.Quaternion();                                                                      // standing
 const ID = new THREE.Quaternion(), DOWN = new THREE.Vector3(0, -1, 0);
+const QA = new THREE.Quaternion(), QB = new THREE.Quaternion(), QC = new THREE.Quaternion(), QD = new THREE.Quaternion();
+const VA = new THREE.Vector3(), VB = new THREE.Vector3();
 const mix = (a, b, t) => a + (b - a) * t;
 const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const setRot = (o, x, y, z) => o.rotation.set(x, y, z);
@@ -112,11 +117,14 @@ function pose(P, st) {
   // the pelvis: on the deck when lying, over the stance when standing
   const hipH = (L1 + L2) * mix(0.6, 0.97 - 0.36 * crouch, stand);
   P.root.position.set(mix(-0.3, -0.02, knees), mix(DECK + 0.15, ANKLE + hipH, knees), 0);
-  // spine: arched up on the arms, then bent forward over the knees; a side lean in a carve
+  // spine: arched up on the arms, then bent forward over the knees; a side lean in a carve.
+  // Standing, the chest turns toward the nose (shoulders open down the line), as surfers ride.
   const fwd = mix(0, 0.15 + 0.45 * crouch + 0.35 * tuck, stand);
-  setRot(P.spine, -0.55 * up * (1 - knees) + fwd + 0.6 * knees * (1 - stand), 0, -0.35 * lean * stand);
-  // head: lying, lifted to look ahead; standing, turned to look down the line (toward the nose)
-  setRot(P.neck, mix(-0.7, 0, tilt) - 0.4 * fwd, mix(0, 1.15, stand), 0);
+  const twist = stand * (0.38 + 0.12 * crouch - 0.15 * tuck);
+  setRot(P.spine, -0.55 * up * (1 - knees) + fwd + 0.6 * knees * (1 - stand), twist, -0.35 * lean * stand);
+  // head: lying, lifted to look ahead; standing, turned to look down the line (toward the nose),
+  // the chest's turn doing part of it
+  setRot(P.neck, mix(-0.7, 0, tilt) - 0.4 * fwd, mix(0, 1.15, stand) - twist, 0);
 
   // legs
   if (pop < 0.3) {
@@ -127,8 +135,11 @@ function pose(P, st) {
   } else {
     // ankles on the deck, in the pelvis's frame (the pelvis is upright once the knees are in)
     const sp = mix(0.12, 0.34, stand), y = -(P.root.position.y - ANKLE);
-    legIK(P.thighL, P.shinL, P.footL, new THREE.Vector3(HIP_W, -0.05, 0), new THREE.Vector3(sp + 0.02, y, 0.02), new THREE.Vector3(0.35, 0, 1), sm(0.3, 0.7, pop));
-    legIK(P.thighR, P.shinR, P.footR, new THREE.Vector3(-HIP_W, -0.05, 0), new THREE.Vector3(-sp - 0.02, y, 0.05), new THREE.Vector3(0.2, 0, 1), sm(0.3, 0.7, pop));
+    // the front knee points down the line; the back knee turns in toward it (and more in a crouch)
+    legIK(P.thighL, P.shinL, P.footL, new THREE.Vector3(HIP_W, -0.05, 0), new THREE.Vector3(sp + 0.02, y, 0.02), new THREE.Vector3(0.45, 0, 1), sm(0.3, 0.7, pop));
+    legIK(P.thighR, P.shinR, P.footR, new THREE.Vector3(-HIP_W, -0.05, 0), new THREE.Vector3(-sp - 0.02, y, 0.05), new THREE.Vector3(0.7 + 0.5 * crouch, 0, 1), sm(0.3, 0.7, pop));
+    // feet across the board, the front one angled toward the nose
+    P.footL.rotateY(0.38 * stand); P.footR.rotateY(0.12 * stand);
   }
 
   // arms
@@ -145,12 +156,20 @@ function pose(P, st) {
       setRot(P.foreL, -0.3, 0, 0); setRot(P.foreR, -0.3, 0, 0);
     }
   } else {
-    // pushing up: hands on the deck under the shoulders; standing: out to the sides for balance
-    const push = (1 - stand) * up;
-    const ax = mix(-1.25, -0.35 - 0.25 * crouch, stand), az = 1.05 + 0.2 * crouch;
-    setRot(P.armL, mix(ax, -1.4, push), 0, mix(az + 0.3 * lean, 0.2, push));
-    setRot(P.armR, mix(ax, -1.4, push), 0, -mix(az - 0.3 * lean, 0.2, push));
-    setRot(P.foreL, mix(-0.15, -0.45, stand), 0, 0); setRot(P.foreR, mix(-0.15, -0.45, stand), 0, 0);
+    // pushing up: hands on the deck under the shoulders
+    const push = up;
+    setRot(P.armL, mix(-1.25, -1.4, push), 0, mix(1.05, 0.2, push)); QA.copy(P.armL.quaternion);
+    setRot(P.armR, mix(-1.25, -1.4, push), 0, -mix(1.05, 0.2, push)); QB.copy(P.armR.quaternion);
+    // standing (directions in the chest's frame: +x the nose, -y down, +z the toe-side rail):
+    // the front hand reaches down the line, the back one hangs low by the back hip; in a drop or
+    // a crouch both go wider for balance; in a carve the arms swing with the turn
+    const bal = sm(0.5, 1.0, crouch), sway = 0.05 * Math.sin(t * 1.7);
+    VA.set(0.78 - 0.1 * bal, -0.5 + 0.12 * bal + sway, 0.32 + 0.3 * lean).normalize();
+    VB.set(-0.28 - 0.35 * bal - 0.2 * Math.abs(lean), -0.9 + 0.35 * bal, 0.28 - 0.2 * lean).normalize();
+    QC.setFromUnitVectors(DOWN, VA); QD.setFromUnitVectors(DOWN, VB);
+    P.armL.quaternion.slerpQuaternions(QA, QC, stand);
+    P.armR.quaternion.slerpQuaternions(QB, QD, stand);
+    setRot(P.foreL, mix(-0.15, -0.35, stand), 0, 0); setRot(P.foreR, mix(-0.15, -0.65 + 0.25 * bal, stand), 0, 0);
     if (tuck > 0) {          // in the barrel: the trailing hand reaches back toward the face of the wave
       P.armR.rotation.x = mix(P.armR.rotation.x, 0.5, tuck); P.armR.rotation.z = mix(P.armR.rotation.z, -0.35, tuck);
       P.armL.rotation.x = mix(P.armL.rotation.x, -1.3, tuck); P.armL.rotation.z = mix(P.armL.rotation.z, 0.6, tuck);

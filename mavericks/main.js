@@ -7,6 +7,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Breaker, LIP, LIP_TIP, CREST, NP } from './breaker.js';
 import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js';
 import { Reflection } from './reflect.js';
+import { upgradeRider } from './surfer.js';
 import * as Swell from './swell.js';
 import { Board, buildRider } from './rider.js';
 import { Sound } from './sound.js';
@@ -572,6 +573,8 @@ function updateRide(dt) {
 
 // ---- the surfer ----
 const rider = buildRider(); scene.add(rider.group);
+// the bought surfer and board, once they have loaded (until then, and if they fail, the simple shapes)
+upgradeRider(rider).catch(e => console.warn('surfer model not loaded, keeping the simple figure:', e));
 const board = new Board();
 const keys = {};
 const touch = { left: false, right: false, paddle: false };
@@ -784,6 +787,20 @@ function railFrom(b, dt) {
 // the follow camera: behind the surfer; while riding, a little toward the shore so the face shows
 const camGoal = new THREE.Vector3(), lookGoal = new THREE.Vector3();
 let camInit = false;
+// How fast the ride feels (none of this changes the physics). While riding, the camera sits
+// closer and lower, lags a little behind (so on the drop you see the surfer fall away from
+// it), widens its view as the speed builds, and shakes slightly at speed; droplets in the air
+// stream past it. reduce-motion settings in the browser turn the shake off.
+const SPEED_FX = {
+  near: 1,        // 1: the close chase camera; 0: the old one, 13 m back and 7 m to the side
+  lag: 1,         // how far the camera trails on the drop and when speeding up (0: locked on)
+  fov: 16,        // degrees the view widens at full speed (62 at rest)
+  shake: 1,       // 0: none
+  motes: 1,       // droplets streaming past (0: none)
+};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fastness = () => board.mode === 'ride' ? smooth(10, 21, board.speed) : 0;
+let fovNow = 62;
 function updateSurfCam(dt) {
   const f = [Math.cos(board.heading), Math.sin(board.heading)];
   const riding = board.mode === 'ride';
@@ -798,21 +815,75 @@ function updateSurfCam(dt) {
     cx = board.x + DIR[0] * 9; cy = board.y + DIR[1] * 9; ch = SEA + board.h + 4;
     lookGoal.copy(W3(board.x - DIR[0] * 40, board.y - DIR[1] * 40, SEA + board.h + 4));
   } else if (riding) {
-    // following along the line: up the wall behind the surfer, a little toward the shore, looking down the line
-    cx = board.x + NRM[0] * 13 + DIR[0] * 7; cy = board.y + NRM[1] * 13 + DIR[1] * 7; ch = SEA + board.h + 2.5;
-    lookGoal.copy(W3(board.x - NRM[0] * 10 + DIR[0] * 1, board.y - NRM[1] * 10 + DIR[1] * 1, SEA + board.h - 0.5));
+    // following along the line: up the wall behind the surfer, a little toward the shore, looking
+    // down the line; the close camera is about 8 m back and 4.5 m out, under 2 m above the board
+    const nr = SPEED_FX.near;
+    const back = 13 - 5 * nr, out = 7 - 2.5 * nr, high = 2.5 - 0.7 * nr;
+    cx = board.x + NRM[0] * back + DIR[0] * out; cy = board.y + NRM[1] * back + DIR[1] * out; ch = SEA + board.h + high;
+    const ahead = 10 + 6 * nr;
+    lookGoal.copy(W3(board.x - NRM[0] * ahead + DIR[0] * 1, board.y - NRM[1] * ahead + DIR[1] * 1, SEA + board.h - 0.5));
   } else {
     cx = board.x - f[0] * 11; cy = board.y - f[1] * 11; ch = SEA + board.h + 3.2;
     lookGoal.copy(W3(board.x + f[0] * 8, board.y + f[1] * 8, SEA + board.h + 1.2));
   }
   camGoal.copy(W3(cx, cy, ch));
   if (!camInit) { camera.position.copy(camGoal); camInit = true; }
-  const k = 1 - Math.exp(-dt * 5);
-  camera.position.lerp(camGoal, k);
+  // follow: riding, a softer spring (more so up and down), so the camera trails on the drop
+  const lag = riding ? SPEED_FX.lag : 0;
+  const kh = 1 - Math.exp(-dt * (5 - 1.5 * lag)), kv = 1 - Math.exp(-dt * (5 - 2.6 * lag));
+  const cp = camera.position;
+  cp.x += (camGoal.x - cp.x) * kh; cp.z += (camGoal.z - cp.z) * kh; cp.y += (camGoal.y - cp.y) * kv;
   // never under the water, also while swinging round
-  const floor = SEA + surface(camera.position.x, -camera.position.z, board.h) + 1.6;   // the face being ridden, not the lip above it
-  if (camera.position.y < floor) camera.position.y = floor;
+  const floor = SEA + surface(cp.x, -cp.z, board.h) + 1.6 - 0.4 * (riding ? SPEED_FX.near : 0);   // the face being ridden, not the lip above it
+  if (cp.y < floor) cp.y = floor;
   camera.lookAt(lookGoal);
+  // a wider view as the speed builds
+  const fast = fastness();
+  fovNow += (62 + SPEED_FX.fov * fast - fovNow) * (1 - Math.exp(-dt * 2));
+  if (Math.abs(camera.fov - fovNow) > 0.01) { camera.fov = fovNow; camera.updateProjectionMatrix(); }
+  // a slight shake at speed, a few quick wobbles at once (never on reduce-motion)
+  const sh = reduceMotion ? 0 : SPEED_FX.shake * fast;
+  if (sh > 0) {
+    const t = clock * 1.0;
+    camera.rotateX(sh * 0.0035 * (Math.sin(t * 13.1) + 0.6 * Math.sin(t * 21.7 + 1.3)));
+    camera.rotateY(sh * 0.0025 * (Math.sin(t * 11.3 + 2.1) + 0.5 * Math.sin(t * 17.9)));
+    camera.rotateZ(sh * 0.004 * Math.sin(t * 7.7 + 0.4));
+  }
+}
+
+// droplets hanging in the air round the camera: they stay where they are in the world, so at
+// speed they stream past it (the surest sign of speed, as dust in a car's headlights)
+const NMOTE = 260, MOTE_R = 22;
+const mo = { pos: new Float32Array(NMOTE * 3), init: false };
+const moGeo = new THREE.BufferGeometry();
+moGeo.setAttribute('position', new THREE.BufferAttribute(mo.pos, 3).setUsage(THREE.DynamicDrawUsage));
+const moMat = new THREE.PointsMaterial({ size: 0.11, map: dot, transparent: true, depthWrite: false, opacity: 0, color: 0xf4f7fa });
+const motes = new THREE.Points(moGeo, moMat); motes.frustumCulled = false; scene.add(motes);
+const _mv = new THREE.Vector3(), _md = new THREE.Vector3();
+function placeMote(i, ahead) {
+  // somewhere round the camera; ahead: in front, where it will come from
+  camera.getWorldDirection(_md);
+  const r = MOTE_R * (ahead ? 0.5 + 0.5 * Math.random() : Math.cbrt(Math.random()));
+  _mv.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(r);
+  if (ahead) _mv.addScaledVector(_md, MOTE_R * 0.6);
+  mo.pos[3 * i] = camera.position.x + _mv.x;
+  mo.pos[3 * i + 1] = Math.max(SEA + 0.4, camera.position.y + _mv.y * 0.5);
+  mo.pos[3 * i + 2] = camera.position.z + _mv.z;
+}
+function updateMotes(dt) {
+  const fast = fastness(), show = view === 'surf' && SPEED_FX.motes > 0 && fast > 0.02;
+  motes.visible = show;
+  if (!show) { mo.init = false; return; }
+  if (!mo.init) { for (let i = 0; i < NMOTE; i++) placeMote(i, false); mo.init = true; }
+  const n = Math.round(NMOTE * Q.fx);
+  moGeo.setDrawRange(0, n);
+  for (let i = 0; i < n; i++) {
+    mo.pos[3 * i + 1] -= 0.3 * dt;                           // settling slowly
+    const dx = mo.pos[3 * i] - camera.position.x, dy = mo.pos[3 * i + 1] - camera.position.y, dz = mo.pos[3 * i + 2] - camera.position.z;
+    if (dx * dx + dy * dy + dz * dz > MOTE_R * MOTE_R || mo.pos[3 * i + 1] < SEA + 0.2) placeMote(i, true);
+  }
+  moMat.opacity = 0.8 * fast * SPEED_FX.motes;
+  moGeo.attributes.position.needsUpdate = true;
 }
 function rideHud() {
   const sp = board.speed * 2.237;
@@ -1016,6 +1087,7 @@ function stepReplay(dtReal) {
   // rail spray, as it was thrown
   if (dt > 0 && f.riding && f.pop > 0.6) railFrom(f, dt);
   replayCamera(f, Math.max(dt, 0.016));
+  motes.visible = false; mo.init = false;
   $('replayTime').textContent = `${(replay.t - replay.t0).toFixed(1)} / ${(replay.t1 - replay.t0).toFixed(1)} s`;
   if (dt > 0) listen(dt);
   refl.update(camera);
@@ -1044,7 +1116,7 @@ function adapt(ms) {
 }
 window.__mav = { get clock() { return clock; }, set clock(v) { clock = v; }, waves, setView, resetSet, stations, camera, controls, cliff, elev, marks, W3,
   board, keys, toLineup, waveAt, surface, toXY,
-  pause(p) { paused = p; }, get cpuMs() { return cpuMs; }, Q, setQuality, sound, refl,
+  pause(p) { paused = p; }, get cpuMs() { return cpuMs; }, Q, setQuality, sound, refl, SPEED_FX,
   get assistOn() { return assistOn; }, set assistOn(v) { assistOn = v; $('assist').classList.toggle('on', v); },
   // for tests: run the game without drawing, `ctl(state)` pressing keys each frame (1/30 s), until it returns true
   sim(ctl, maxT = 60) {
@@ -1073,8 +1145,10 @@ renderer.setAnimationLoop(() => {
     if (dt > 0) { updateSurfer(dt); boardSpray(dt); }
     placeSurfer(Math.max(dt, 0.016));
     updateSurfCam(Math.max(dt, 0.016));
+    updateMotes(dt);
     rideHud();
   }
+  if (view !== 'surf') motes.visible = false;
   if (view === 'ride') updateRide(Math.max(dt, 0.016));
   if (view === 'lineup' || view === 'channel') {        // on a board or a boat: rise and fall with the swell
     const x = camera.position.x, y = -camera.position.z;
