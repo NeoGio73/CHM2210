@@ -13,6 +13,7 @@ list is here if you want to come back and practice.
 | Stereochemistry | [Stereochemistry Practice](https://neogio73.github.io/CHM2210/stereochemistry-practice.html) | R/S and E/Z on 3D models of real molecules (ibuprofen, menthol, L-cysteine, substituted alkenes), with a results page and the questions to review |
 | Alkene reactions | [Chapter 8 Flashcards](https://neogio73.github.io/CHM2210/flashcards/ch08-alkenes.html) | 94 flip cards on alkene additions (HX, hydration, rearrangements, oxymercuration, hydroboration, X₂, halohydrins, epoxides, diols, cleavage, carbenes), some with rotatable 3D models; sort cards into "Got it" and "Review again" piles |
 | Alkyne reactions | [Chapter 9 Flashcards](https://neogio73.github.io/CHM2210/flashcards/ch09-alkynes.html) | 66 flip cards on alkynes (naming, preparation, X₂ and HX, hydration and tautomers, reductions, cleavage, acidity, alkylation, synthesis), some with rotatable 3D models |
+| Polymers | [Polymers & the Surf Zone](https://neogio73.github.io/CHM2210/polymers-surf-zone.html) | Chain-growth and step-growth polymers with monomer and repeat-unit structures, tacticity, rubber and copolymers; then the chemistry of surfboards and paddleboards, wave and board physics with slider labs, East Florida surf, tides and sharks, and practice problems with three help levels |
 
 ## How the pages were used
 
@@ -31,8 +32,14 @@ home. The other two are for studying on your own; each ends with challenges.
   Each deck is a single file: its structures are drawn in the page and its 3D models use a small viewer
   built into the page. Only the fonts load from Google Fonts. A student's Got it / Review marks are saved
   in their own browser and are not sent anywhere.
+- Polymers & the Surf Zone is a single file. Its structures were drawn with RDKit and its photos are
+  embedded in the page, so only the fonts load from Google Fonts. Photo credits: Mavericks by Shalom
+  Jacobovitz ([CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)), Teahupo'o by Olivier
+  Dugornay / Ifremer ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0)), both resized; the
+  Mavericks bathymetry map is from the U.S. Geological Survey with the CSUMB Seafloor Mapping Lab.
 - The pages cite the sections of the open textbook they follow: [OpenStax Organic
-  Chemistry](https://openstax.org/details/books/organic-chemistry), chapters 4 (cyclohexane) and 5
-  (stereochemistry).
+  Chemistry](https://openstax.org/details/books/organic-chemistry), chapters 4 (cyclohexane), 5
+  (stereochemistry), 8 and 9 (alkenes and alkynes), and 31 (synthetic polymers; radical polymerization
+  is in section 8.10).
 - The repository is published with GitHub Pages from the `main` branch, so every file is served at
   `https://neogio73.github.io/CHM2210/` followed by its name.
