@@ -1,0 +1,1617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orgo Word Lattice</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Martian+Mono:wght@400;600;800&display=swap">
+<style>
+/* Layout: a full-bleed 3D letter lattice (molecular-viewer stage) beside a lab-notebook panel; on phones the stage sits above the panel. */
+:root {
+  --void: #0d1424;        /* stage ground, deep navy */
+  --void-2: #18223b;      /* stage glow */
+  --panel: #121a2c;       /* notebook panel */
+  --raise: #1a2439;       /* raised controls */
+  --line: #283553;        /* hairlines */
+  --text: #e8ecf5;
+  --muted: #97a3bd;
+  --sulfur: #ffff30;      /* Jmol sulfur: the selection color */
+  --sulfur-ink: #1b1d08;
+  --hydrogen: #eef1f6;    /* unbonded letters */
+  --danger: #ff8f8f;
+  --font-display: "Martian Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --step--1: 0.8125rem;
+  --step-0: 0.9375rem;
+  --step-1: 1.125rem;
+  --step-2: 1.5rem;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: border-box; }
+h1, h2, p, ul, ol, dl, dd { margin: 0; }
+ul.words { padding: 0; }
+html, body { height: 100%; }
+body { margin: 0; }
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--sulfur); outline-offset: 2px; }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 372px;
+}
+
+/* ---------- stage ---------- */
+.stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 42%, var(--void-2) 0%, var(--void) 70%);
+}
+#lattice {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+#lattice.dragging { cursor: grabbing; }
+#lattice.over-atom { cursor: pointer; }
+
+.hud {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.hud-top { top: 14px; align-items: flex-start; }
+.hud-bottom { bottom: 14px; flex-direction: column; align-items: stretch; gap: 10px; }
+
+.readout { display: grid; gap: 2px; }
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.score {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums;
+}
+.score b { color: var(--sulfur); font-weight: 800; }
+.score .clock { color: var(--muted); font-weight: 400; margin-left: 0.6em; }
+
+.hud-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.pill {
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--raise) 86%, transparent);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.pill:hover { border-color: var(--muted); }
+
+.status {
+  align-self: center;
+  max-width: 34rem;
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--text);
+  background: color-mix(in srgb, var(--void) 78%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 12px;
+  backdrop-filter: blur(6px);
+}
+.status.good { border-color: color-mix(in srgb, var(--sulfur) 55%, var(--line)); }
+.status.bad { border-color: color-mix(in srgb, var(--danger) 60%, var(--line)); }
+
+.dials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  justify-content: center;
+  background: color-mix(in srgb, var(--raise) 80%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 14px;
+  backdrop-filter: blur(6px);
+  align-self: center;
+}
+.dial { display: flex; align-items: center; gap: 10px; font-size: var(--step--1); color: var(--muted); }
+.dial label { font-family: var(--font-display); font-size: 0.6875rem; letter-spacing: 0.1em; text-transform: uppercase; min-width: 4.2em; }
+.dial input[type=range] { width: 9.5rem; accent-color: var(--sulfur); }
+
+.complete {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--void) 70%, transparent);
+  backdrop-filter: blur(3px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.card {
+  width: min(26rem, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+  display: grid;
+  gap: 14px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+}
+.card h2 { font-family: var(--font-display); font-weight: 800; font-size: var(--step-2); line-height: 1.15; text-wrap: balance; }
+.card dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: var(--step--1); }
+.card dt { color: var(--muted); }
+.card dd { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.card .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.card .note { font-size: var(--step--1); color: var(--muted); }
+
+/* ---------- panel ---------- */
+.panel {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  padding-block: 20px 28px;
+  padding-left: max(18px, env(safe-area-inset-left, 0px));
+  padding-right: max(18px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.brand h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.375rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.brand h1 span { color: var(--sulfur); }
+.brand p { color: var(--muted); font-size: var(--step--1); margin-top: 6px; max-width: 34ch; }
+
+.section-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 10px;
+}
+.section-head h2 {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
+.seg button {
+  border: 0; background: transparent; border-radius: 999px;
+  padding: 3px 11px; font-size: var(--step--1); font-weight: 700; color: var(--muted); cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+
+.words { list-style: none; display: grid; gap: 6px; }
+.word {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 10px;
+  padding: 7px 8px;
+  cursor: default;
+}
+.word.found { cursor: pointer; }
+.word.found:hover { border-color: var(--line); background: var(--raise); }
+.atom-chip {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 0.6875rem; font-weight: 800;
+  border: 1.5px dashed var(--line);
+  color: var(--muted);
+}
+.word.found .atom-chip { border: 0; }
+.word-body { min-width: 0; display: grid; gap: 1px; }
+.word-main { font-size: var(--step-0); line-height: 1.35; overflow-wrap: anywhere; }
+.word-term {
+  font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em;
+  font-size: 0.875rem; overflow-wrap: anywhere;
+}
+.word-meta { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.word-meta .hint { color: var(--sulfur); }
+.word.found .word-main.clue { color: var(--muted); font-size: var(--step--1); }
+
+details.box { border-top: 1px solid var(--line); padding-top: 14px; }
+details.box > summary {
+  list-style: none; cursor: pointer;
+  font-family: var(--font-display); font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  display: flex; justify-content: space-between; align-items: center;
+}
+details.box > summary::-webkit-details-marker { display: none; }
+details.box > summary::after { content: "+"; font-size: 1rem; color: var(--muted); }
+details.box[open] > summary::after { content: "–"; }
+.box-body { display: grid; gap: 14px; margin-top: 12px; }
+.howto { padding-left: 1.1em; display: grid; gap: 6px; font-size: var(--step--1); color: var(--text); max-width: 40ch; }
+.howto li::marker { color: var(--muted); }
+
+.field { display: grid; gap: 7px; }
+.field > .label { font-size: var(--step--1); font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  min-width: 2.4rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-family: var(--font-display); font-size: 0.8125rem; font-weight: 600;
+  cursor: pointer; color: var(--muted);
+}
+.chip[aria-pressed="true"] { background: var(--raise); color: var(--text); border-color: var(--muted); }
+.chip.quiet { font-family: var(--font-body); font-weight: 700; }
+.ch-title { font-size: 0.75rem; color: var(--muted); min-height: 1.2em; }
+.options { display: grid; gap: 4px; }
+.options label { display: flex; gap: 8px; align-items: baseline; font-size: var(--step--1); cursor: pointer; }
+.options input { accent-color: var(--sulfur); }
+.options small { color: var(--muted); }
+.inline { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.primary {
+  border: 0; border-radius: 10px;
+  background: var(--sulfur); color: var(--sulfur-ink);
+  font-weight: 700; padding: 10px 16px; cursor: pointer;
+}
+.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.ghost {
+  border: 1px solid var(--line); border-radius: 10px; background: transparent;
+  font-weight: 700; padding: 9px 14px; cursor: pointer;
+}
+.build-note { font-size: 0.75rem; color: var(--muted); }
+.build-note.warn { color: var(--danger); }
+.termcheck { font-size: 0.75rem; color: var(--muted); }
+.termcheck ul { padding-left: 1.1em; margin-top: 4px; }
+
+.credits { font-size: 0.75rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; max-width: 46ch; }
+.credits a { color: var(--text); }
+
+@media (max-width: 820px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(300px, 58%) minmax(0, 1fr); }
+  .panel { border-left: 0; border-top: 1px solid var(--line); padding-block: 16px 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .dial input[type=range] { width: 5.6rem; }
+  .dial { gap: 6px; }
+  .dial label { min-width: 0; }
+  .dials { padding: 6px 12px; gap: 6px 14px; flex-wrap: nowrap; }
+  .status { font-size: 0.75rem; padding: 5px 10px; }
+  .hud-top { top: 10px; }
+  .hud-bottom { bottom: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<!--
+  ===================================================================
+  TERM LIST - edit this block to change the puzzle's terms.
+  One term per line:   chapter | answer | clue
+    - answer: how the term is shown once found. Only its letters go
+      into the cube (spaces, hyphens, apostrophes and accents are
+      dropped), so it must have 3 to 12 letters.
+    - clue: shown in Clue mode. Use ___ for the missing word.
+  Lines that start with # are notes and are ignored.
+  After an edit, open the page and look under "New lattice": the
+  term-list line there says how many terms loaded and lists any
+  line that was skipped, with the reason.
+  "course |" sets the label at the top of the cube.
+  "chapter N |" gives a chapter its name.
+  ===================================================================
+-->
+<script type="text/plain" id="term-list">
+course | CHM 2210 · Organic Chemistry 1
+
+chapter 1 | Structure and Bonding
+chapter 2 | Polar Covalent Bonds; Acids and Bases
+chapter 3 | Alkanes and Their Stereochemistry
+chapter 4 | Cycloalkanes and Their Stereochemistry
+chapter 5 | Stereochemistry at Tetrahedral Centers
+chapter 6 | An Overview of Organic Reactions
+chapter 7 | Alkenes: Structure and Reactivity
+chapter 8 | Alkenes: Reactions and Synthesis
+chapter 9 | Alkynes: An Introduction to Organic Synthesis
+chapter 10 | Organohalides
+chapter 11 | Nucleophilic Substitutions and Eliminations
+
+# ---- Chapter 1 ----
+1 | antibonding | Type of MO that is higher in energy than the atomic orbitals it came from and has a node between the nuclei
+1 | atomic number | Z, the number of protons in the nucleus
+1 | Aufbau | ___ principle: electrons fill the lowest-energy orbitals first
+1 | bond angle | The angle between two bonds to the same atom, 109.5° in methane
+1 | bond length | The best distance between two bonded nuclei
+1 | bond strength | How much energy is released when a bond forms, or needed to break it
+1 | condensed | ___ structure: C–C and C–H single bonds are not drawn, as in CH₃CH₂OH
+1 | covalent bond | A bond made by two atoms sharing a pair of electrons
+1 | ground state | ___ electron configuration: the lowest-energy arrangement of an atom's electrons
+1 | Hund's rule | In orbitals of equal energy, each gets one electron with parallel spins before any pairing
+1 | hybrid | sp³ ___ orbital: made by mixing one s and three p orbitals
+1 | ionic bond | A bond made by the attraction of oppositely charged ions
+1 | isotope | Atoms of the same element with different numbers of neutrons
+1 | Kekulé | ___ structure: a line-bond structure, with each bond drawn as a line
+1 | Lewis | ___ structure: an electron-dot structure with valence electrons drawn as dots
+1 | lone pair | A pair of valence electrons not used in bonding
+1 | mass number | A, the number of protons plus neutrons
+1 | molecule | A neutral group of atoms held together by covalent bonds
+1 | node | A region of zero electron density where the wave function changes sign
+1 | nonbonding | ___ electron: a valence electron that is not shared in a bond
+1 | orbital | The region of space where an electron is most likely to be found
+1 | organic | ___ chemistry: the chemistry of carbon compounds
+1 | Pauli | ___ exclusion principle: at most two electrons per orbital, with opposite spins
+1 | pi bond | A bond from sideways overlap of p orbitals, with electron density above and below the bond axis
+1 | sigma bond | A cylindrically symmetric bond from head-on orbital overlap
+1 | skeletal | ___ structure: carbons sit at line ends and corners, and H atoms on carbon are not drawn
+1 | valence bond | ___ theory: a bond forms when two singly occupied atomic orbitals overlap
+1 | valence shell | The outermost electron shell of an atom
+
+# ---- Chapter 2 ----
+2 | acidity | Ka, the ___ constant
+2 | alkaloid | A basic, nitrogen-containing natural product from plants, such as morphine
+2 | Brønsted | ___–Lowry acid: a proton donor
+2 | conjugate | When an acid loses H⁺, the species left behind is its ___ base
+2 | dipole moment | μ, the measure of a molecule's net polarity (charge × distance)
+2 | dispersion | ___ forces: weak attractions from temporary dipoles, stronger in larger molecules
+2 | formal charge | Valence electrons − half the bonding electrons − the nonbonding electrons
+2 | hydrogen bond | Attraction between an H on O or N and a lone pair on another electronegative atom
+2 | hydrophilic | Water-loving; dissolves in water
+2 | hydrophobic | Water-fearing; does not dissolve in water
+2 | inductive | ___ effect: electrons in a sigma bond shift toward a nearby electronegative atom
+2 | Lewis acid | An electron-pair acceptor, such as BF₃
+2 | Lewis base | An electron-pair donor, such as NH₃
+2 | noncovalent | ___ interaction: an attraction between molecules that is not a bond
+2 | pKa | −log Ka; the smaller this value, the stronger the acid
+2 | potential map | Electrostatic ___: red for electron-rich regions, blue for electron-poor regions
+2 | resonance | ___ forms differ only in where the electrons are; the real molecule is a hybrid of them
+2 | van der Waals | ___ forces: another name for dispersion forces
+
+# ---- Chapter 3 ----
+3 | alcohol | R–OH, an OH group on an sp³ carbon
+3 | aldehyde | R–CHO, a carbonyl carbon bonded to at least one H
+3 | aliphatic | A nonaromatic hydrocarbon; the name comes from the Greek word for "fat"
+3 | alkane | A hydrocarbon with only single bonds, CₙH₂ₙ₊₂
+3 | alkene | A hydrocarbon with a C=C double bond
+3 | alkyne | A hydrocarbon with a C≡C triple bond
+3 | alkyl group | The part of an alkane left after one H is removed, such as –CH₃
+3 | alkyl halide | R–X, a halogen on an sp³ carbon
+3 | amide | A carbonyl group bonded to nitrogen, R–CONH₂
+3 | amine | R–NH₂, nitrogen bonded to alkyl groups
+3 | anti | ___ conformation: the two largest groups are 180° apart in a Newman projection
+3 | arene | An aromatic hydrocarbon, such as benzene
+3 | branched | ___-chain alkane: a carbon chain with branches, such as isobutane
+3 | carbonyl | ___ group: C=O
+3 | carboxylic | ___ acid: R–COOH
+3 | conformation | The 3D shape a molecule takes from rotation about single bonds
+3 | conformer | A specific conformational isomer
+3 | eclipsed | ___ conformation: bonds on neighboring carbons line up, at a 0° dihedral angle
+3 | ester | R–COOR′
+3 | ether | R–O–R′, an oxygen bonded to two carbons
+3 | functional | ___ group: the atoms responsible for a molecule's typical reactions
+3 | gauche | ___ conformation: the two largest groups are 60° apart
+3 | hydrocarbon | A compound that contains only carbon and hydrogen
+3 | isomer | Compounds with the same formula but different structures
+3 | ketone | A carbonyl group bonded to two carbons
+3 | Newman | ___ projection: looking end-on down a C–C bond
+3 | nitrile | R–C≡N
+3 | R group | Shorthand for the rest of the molecule
+3 | saturated | Having the most H atoms possible; only single bonds
+3 | sawhorse | ___ representation: a C–C bond viewed at an angle from above
+3 | staggered | ___ conformation: a 60° dihedral angle, the lowest-energy form of ethane
+3 | steric strain | Repulsion when atoms are forced closer together than their sizes allow
+3 | substituent | A group attached to the parent chain
+3 | sulfide | R–S–R′
+3 | thiol | R–SH
+3 | torsional | ___ strain: the energy cost of eclipsed bonds
+
+# ---- Chapter 4 ----
+4 | alicyclic | An aliphatic cyclic hydrocarbon
+4 | angle strain | Strain from bond angles forced away from 109.5°
+4 | axial | Cyclohexane position parallel to the ring's axis
+4 | boat | Cyclohexane conformation with flagpole interactions
+4 | bridgehead | ___ atom: shared by two rings in a bicyclic compound
+4 | chair | The strain-free conformation of cyclohexane
+4 | cis–trans | ___ isomers: groups on the same side or on opposite sides of a ring
+4 | cycloalkane | An alkane with its carbons in a ring
+4 | diaxial | 1,3-___ interaction: strain between an axial group and the axial H atoms two carbons away
+4 | equatorial | Cyclohexane position roughly along the ring's equator
+4 | polycyclic | A molecule with more than one ring
+4 | ring-flip | Chair-to-chair interconversion; axial groups become equatorial
+4 | stereoisomer | Same connections, different 3D arrangement in space
+4 | twist-boat | Cyclohexane conformation that is less strained than the boat
+
+# ---- Chapter 5 ----
+5 | absolute | ___ configuration: the actual 3D arrangement at a chirality center, R or S
+5 | achiral | Superimposable on its mirror image
+5 | chiral | Not superimposable on its mirror image
+5 | chirality | ___ center: a carbon bonded to four different groups
+5 | dextro | (+): ___rotatory, rotating plane-polarized light clockwise
+5 | diastereomer | Stereoisomers that are not mirror images of each other
+5 | enantiomer | Stereoisomers that are nonsuperimposable mirror images
+5 | epimer | Diastereomers that differ at only one chirality center
+5 | levorotatory | (−): rotates plane-polarized light counterclockwise
+5 | meso | ___ compound: has chirality centers but is achiral because of a mirror plane
+5 | optically | ___ active: rotates plane-polarized light
+5 | Prelog | Cahn–Ingold–___ rules: rank the groups at a chirality center
+5 | prochiral | Can become chiral in a single chemical step
+5 | racemate | A 50:50 mixture of enantiomers, with no optical rotation
+5 | resolution | Separating a racemate into its two enantiomers
+5 | rotation | Specific ___, [α]D
+
+# ---- Chapter 6 ----
+6 | activation | ___ energy, ΔG‡: the barrier from reactants to the transition state
+6 | active site | The pocket in an enzyme where the reaction happens
+6 | addition | ___ reaction: two reactants combine into one product
+6 | carbocation | A positively charged carbon with only six valence electrons
+6 | coordinate | Reaction ___: the axis of an energy diagram that shows reaction progress
+6 | dissociation | Bond ___ energy, D: the energy needed to break a bond into two radicals
+6 | electrophile | An electron-poor species that accepts an electron pair
+6 | elimination | ___ reaction: one reactant splits into two products, often forming a C=C
+6 | endergonic | ΔG is positive; the reaction is not favorable
+6 | endothermic | ΔH is positive; heat is absorbed
+6 | enthalpy | ΔH, the heat of reaction
+6 | entropy | ΔS, a measure of molecular disorder or freedom of motion
+6 | enzyme | A biological catalyst, usually a protein
+6 | exergonic | ΔG is negative; the reaction is favorable
+6 | exothermic | ΔH is negative; heat is released
+6 | Gibbs | ___ free-energy change, ΔG
+6 | intermediate | Reaction ___: forms in one step and is used up in a later step
+6 | mechanism | Reaction ___: a step-by-step account of which bonds break and form
+6 | nucleophile | An electron-rich species that donates an electron pair
+6 | polar | ___ reactions: bonds break and form unevenly, with electron pairs
+6 | radical | A species with an unpaired electron
+6 | substitution | ___ reaction: two reactants exchange parts
+6 | transition | ___ state: the highest-energy point of a reaction step
+
+# ---- Chapter 7 ----
+7 | allyl | ___ group: H₂C=CHCH₂–
+7 | entgegen | E configuration, from the German word for "opposite"
+7 | Hammond | ___ postulate: a transition state looks most like the species closest to it in energy
+7 | hydride shift | A carbocation rearrangement in which H moves with its electron pair to the next carbon
+7 | Markovnikov | ___'s rule: in HX addition, H adds to the carbon that already has more H atoms
+7 | methylene | ___ group: =CH₂
+7 | unsaturated | Having fewer H atoms than the matching alkane, because of rings or multiple bonds
+7 | unsaturation | Degree of ___: the number of rings plus pi bonds
+7 | vinyl | ___ group: H₂C=CH–
+7 | zusammen | Z configuration, from the German word for "together"
+
+# ---- Chapter 8 (polymer terms left out) ----
+8 | bromonium | ___ ion: the three-membered ring intermediate in Br₂ addition
+8 | carbene | R₂C:, a neutral carbon with only six valence electrons
+8 | epoxide | A cyclic ether with a three-membered ring
+8 | glycol | A 1,2-diol
+8 | halohydrin | Product with –X and –OH on neighboring carbons
+8 | hydrogenated | Having had H₂ added across a multiple bond
+8 | oxidation | A reaction that lowers the electron density on carbon
+8 | oxirane | Another name for an epoxide
+8 | ozonide | The unstable intermediate formed when O₃ adds to an alkene
+8 | reduction | A reaction that raises the electron density on carbon
+8 | Simmons–Smith | ___ reaction: CH₂I₂ and Zn(Cu) turn an alkene into a cyclopropane
+8 | syn | ___ stereochemistry: both groups add to the same face of the double bond
+
+# ---- Chapter 9 ----
+9 | acetylide | ___ anion: RC≡C:−, from removing the H of a terminal alkyne
+9 | alkylation | Adding an alkyl group to a molecule
+9 | enol | A vinylic alcohol, C=C–OH
+9 | Lindlar | ___ catalyst: reduces an alkyne to a cis alkene
+9 | retro | Working backward from the target: ___synthetic analysis
+9 | tautomer | Constitutional isomers that interconvert quickly, like the keto and enol forms
+
+# ---- Chapter 10 ----
+10 | allylic | The position next to a C=C double bond
+10 | carbanion | A carbon anion with an unshared electron pair
+10 | delocalized | Spread out over several atoms, as in a resonance hybrid
+10 | Gilman | ___ reagent: a lithium diorganocopper, LiR₂Cu
+10 | Grignard | ___ reagent: RMgX
+10 | organohalide | A compound that has a carbon–halogen bond
+
+# ---- Chapter 11 ----
+11 | benzylic | The position next to an aromatic ring
+11 | bimolecular | Two species take part in the rate-limiting step
+11 | deuterium | ___ isotope effect: C–D bonds break more slowly than C–H bonds
+11 | first-order | ___ reaction: the rate depends on one reactant's concentration (SN1)
+11 | ion pair | A loose association of a carbocation and its leaving group
+11 | kinetics | The study of reaction rates
+11 | leaving group | The group that departs with the bonding electron pair
+11 | periplanar | Anti ___: the H and the leaving group lie in one plane, 180° apart, for E2
+11 | rate-limiting | ___ step: the slowest step in a mechanism
+11 | second-order | ___ reaction: the rate depends on two concentrations (SN2)
+11 | solvation | Solvent molecules clustering around a dissolved particle
+11 | tosylate | A p-toluenesulfonate ester, an excellent leaving group
+11 | unimolecular | Only one species takes part in the rate-limiting step
+11 | Zaitsev | ___'s rule: elimination gives the more highly substituted alkene
+</script>
+
+<div class="app">
+  <main class="stage" id="stage">
+    <canvas id="lattice" tabindex="0" aria-label="3D cube of letters. Drag to rotate. Tap a first letter, then a last letter."></canvas>
+
+    <div class="hud hud-top">
+      <div class="readout">
+        <span class="eyebrow" id="course-label">CHM 2210</span>
+        <span class="score"><b id="found-count">0</b> of <span id="total-count">0</span> bonded<span class="clock" id="clock">00:00</span></span>
+      </div>
+      <div class="hud-actions">
+        <button class="pill" id="hint-btn" type="button">Hint</button>
+        <button class="pill" id="reset-btn" type="button">Reset view</button>
+      </div>
+    </div>
+
+    <div class="hud hud-bottom">
+      <p class="status" id="status" role="status" aria-live="polite">Drag to turn the cube. Tap the first letter of a term.</p>
+      <div class="dials">
+        <div class="dial"><label for="spread">Spread</label><input id="spread" type="range" min="100" max="240" value="150"></div>
+        <div class="dial"><label for="peel">Peel</label><input id="peel" type="range" min="0" max="100" value="0"></div>
+      </div>
+    </div>
+
+    <div class="complete" id="complete" hidden>
+      <div class="card" role="dialog" aria-labelledby="done-title">
+        <h2 id="done-title">Lattice complete</h2>
+        <dl>
+          <dt>Terms</dt><dd id="done-terms"></dd>
+          <dt>Time</dt><dd id="done-time"></dd>
+          <dt>Hints</dt><dd id="done-hints"></dd>
+          <dt>Chapters</dt><dd id="done-ch"></dd>
+          <dt>Cube</dt><dd id="done-cube"></dd>
+          <dt>Finished</dt><dd id="done-when"></dd>
+        </dl>
+        <div class="row">
+          <button class="primary" id="done-new" type="button">Build a new lattice</button>
+          <button class="ghost" id="done-close" type="button">Look at the cube</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="panel" aria-label="Puzzle panel">
+    <header class="brand">
+      <h1>Orgo Word <span>Lattice</span></h1>
+      <p>Key terms from OpenStax Organic Chemistry, hidden in a cube of letters. Every line through the cube can hide a word, including lines that pass through the middle.</p>
+    </header>
+
+    <section aria-labelledby="list-title">
+      <div class="section-head">
+        <h2 id="list-title">Find these terms</h2>
+        <div class="seg" role="group" aria-label="List style">
+          <button type="button" id="mode-clue" aria-pressed="true">Clues</button>
+          <button type="button" id="mode-word" aria-pressed="false">Words</button>
+        </div>
+      </div>
+      <ul class="words" id="word-list"></ul>
+    </section>
+
+    <details class="box" id="howto" open>
+      <summary>How to play</summary>
+      <div class="box-body">
+        <ol class="howto">
+          <li>Drag to turn the cube. Pinch or scroll to zoom.</li>
+          <li>Tap the first letter of a term. Only letters in a straight line from it stay lit.</li>
+          <li>Tap the last letter. If the letters between spell a term, they bond in color.</li>
+          <li>Words can run through the inside of the cube. Use <b>Spread</b> to open the gaps and <b>Peel</b> to cut away the front layers.</li>
+          <li>Spaces, hyphens, apostrophes and accents are left out in the cube.</li>
+        </ol>
+      </div>
+    </details>
+
+    <details class="box" id="setup">
+      <summary>New lattice</summary>
+      <div class="box-body">
+        <div class="field">
+          <span class="label" id="ch-label">Chapters</span>
+          <div class="chips" id="chapter-chips" role="group" aria-labelledby="ch-label"></div>
+          <div class="inline">
+            <button class="chip quiet" type="button" id="ch-all">All</button>
+            <button class="chip quiet" type="button" id="ch-none">None</button>
+          </div>
+          <span class="ch-title" id="ch-title"></span>
+        </div>
+        <div class="field">
+          <span class="label">Cube size</span>
+          <div class="options" id="size-opts">
+            <label><input type="radio" name="size" value="8"> 8 × 8 × 8 <small>terms up to 8 letters</small></label>
+            <label><input type="radio" name="size" value="10"> 10 × 10 × 10 <small>terms up to 10 letters</small></label>
+            <label><input type="radio" name="size" value="12"> 12 × 12 × 12 <small>terms up to 12 letters</small></label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">Directions</span>
+          <div class="options" id="dir-opts">
+            <label><input type="radio" name="dirs" value="easy"> Easy <small>straight rows, columns and depth lines, read forward</small></label>
+            <label><input type="radio" name="dirs" value="medium"> Medium <small>adds diagonals across each face, either way</small></label>
+            <label><input type="radio" name="dirs" value="hard"> Hard <small>adds corner-to-corner lines through the cube</small></label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label" id="count-label">Number of terms</span>
+          <div class="chips" id="count-chips" role="group" aria-labelledby="count-label"></div>
+        </div>
+        <button class="primary" id="build-btn" type="button">Build new lattice</button>
+        <span class="build-note" id="build-note"></span>
+        <div class="termcheck" id="termcheck"></div>
+      </div>
+    </details>
+
+    <footer class="credits">
+      Terms from <a href="https://openstax.org/details/books/organic-chemistry" target="_blank" rel="noopener">OpenStax Organic Chemistry: A Tenth Edition</a> (J. McMurry), CC BY-NC-SA 4.0. Clues written for this puzzle. Bonded terms take Jmol atom colors; unbonded letters are hydrogen white.
+    </footer>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+"use strict";
+
+/* ================= term list ================= */
+const MAX_LETTERS = 12;
+function lettersOf(s) {
+  return s.replace(/ø/gi, "o").replace(/æ/gi, "ae").replace(/ß/g, "ss")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toUpperCase().replace(/[^A-Z]/g, "");
+}
+function parseTerms(text) {
+  const terms = [], skipped = [], chapterNames = {};
+  let course = "";
+  const seen = new Set();
+  text.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) return;
+    const parts = line.split("|").map(p => p.trim());
+    const head = parts[0].toLowerCase();
+    if (head === "course") { course = parts.slice(1).join(" | "); return; }
+    const chm = /^chapter\s+(\d+)$/.exec(head);
+    if (chm) { chapterNames[+chm[1]] = parts.slice(1).join(" | "); return; }
+    if (parts.length < 3) { skipped.push({ line: i + 1, text: line, why: "needs chapter | answer | clue" }); return; }
+    const ch = parseInt(parts[0], 10);
+    const answer = parts[1];
+    const clue = parts.slice(2).join(" | ");
+    const letters = lettersOf(answer);
+    if (!Number.isFinite(ch)) { skipped.push({ line: i + 1, text: line, why: "chapter is not a number" }); return; }
+    if (letters.length < 3) { skipped.push({ line: i + 1, text: line, why: "answer has fewer than 3 letters" }); return; }
+    if (letters.length > MAX_LETTERS) { skipped.push({ line: i + 1, text: line, why: `answer has ${letters.length} letters (max ${MAX_LETTERS})` }); return; }
+    if (seen.has(letters)) { skipped.push({ line: i + 1, text: line, why: "same letters as an earlier term" }); return; }
+    seen.add(letters);
+    terms.push({ ch, answer, clue, letters });
+  });
+  return { terms, skipped, chapterNames, course };
+}
+const TERMS = parseTerms(document.getElementById("term-list").textContent);
+const CHAPTERS = [...new Set(TERMS.terms.map(t => t.ch))].sort((a, b) => a - b);
+
+/* ================= palette (Jmol element colors) ================= */
+const ELEMENTS = [
+  ["O", "#FF0D0D"], ["N", "#3050F8"], ["Cl", "#1FF01F"], ["P", "#FF8000"],
+  ["Li", "#CC80FF"], ["Si", "#F0C8A0"], ["Cu", "#C88033"], ["B", "#FFB5B5"],
+  ["K", "#8F40D4"], ["Zn", "#7D80B0"], ["Fe", "#E06633"], ["Co", "#F090A0"]
+].map(([sym, hex]) => ({ sym, hex, rgb: hexRgb(hex) }));
+function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+const C_H = hexRgb("#EEF1F6");
+const C_SEL = hexRgb("#FFFF30");
+const C_PATH = hexRgb("#FFF59A");
+const C_BAD = hexRgb("#FF8F8F");
+const BG = hexRgb("#141d33");
+function inkFor(rgb) { return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) > 0.5 ? "#141a22" : "#ffffff"; }
+
+/* ================= directions ================= */
+const DIRS26 = [];
+for (let dz = -1; dz <= 1; dz++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+  if (dx || dy || dz) DIRS26.push([dx, dy, dz]);
+}
+function dirsFor(level) {
+  if (level === "easy") return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  if (level === "medium") return DIRS26.filter(d => d.filter(v => v !== 0).length <= 2);
+  return DIRS26;
+}
+const DIR_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
+
+/* ================= puzzle generator ================= */
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const rev = s => s.split("").reverse().join("");
+function conflicts(a, b) { return a.includes(b) || b.includes(a) || a.includes(rev(b)) || b.includes(rev(a)); }
+
+function generate(settings) {
+  const n = settings.size;
+  const dirs = dirsFor(settings.dirs);
+  const pool = shuffle(TERMS.terms.filter(t => settings.chapters.includes(t.ch) && t.letters.length <= n));
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const grid = new Uint8Array(n * n * n);
+    const words = [];
+    const chosen = [];
+    for (const t of pool) {
+      if (chosen.length >= settings.count) break;
+      if (chosen.some(c => conflicts(c.letters, t.letters))) continue;
+      chosen.push(t);
+    }
+    chosen.sort((a, b) => b.letters.length - a.letters.length);
+    for (const t of chosen) {
+      const placed = place(grid, n, t.letters, dirs);
+      if (placed) words.push({ ...t, cells: placed, found: false, path: null, color: -1, hinted: false });
+    }
+    if (words.length < Math.min(settings.count, chosen.length) && attempt < 11) { shuffle(pool); continue; }
+    fillAndRepair(grid, n, words);
+    // order list by chapter, then alphabetically for a calm reading order
+    words.sort((a, b) => a.ch - b.ch || a.letters.localeCompare(b.letters));
+    return { n, grid: Array.from(grid), words, dirs: settings.dirs, chapters: settings.chapters.slice() };
+  }
+  return null;
+}
+function place(grid, n, word, dirs) {
+  const L = word.length;
+  let best = null, bestOverlap = -1;
+  for (let t = 0; t < 700; t++) {
+    const d = dirs[Math.random() * dirs.length | 0];
+    const lo = d.map(v => (v < 0 ? L - 1 : 0)), hi = d.map(v => (v > 0 ? n - L : n - 1));
+    if (hi.some((h, i) => h < lo[i])) continue;
+    const s = [0, 1, 2].map(i => lo[i] + (Math.random() * (hi[i] - lo[i] + 1) | 0));
+    let ok = true, overlap = 0; const cells = [];
+    for (let k = 0; k < L; k++) {
+      const idx = (s[0] + d[0] * k) + n * ((s[1] + d[1] * k) + n * (s[2] + d[2] * k));
+      const c = grid[idx], want = word.charCodeAt(k) - 64;
+      if (c && c !== want) { ok = false; break; }
+      if (c) overlap++;
+      cells.push(idx);
+    }
+    if (!ok) continue;
+    // take the first fit, but sometimes keep looking for a crossing; crossings make the cube feel woven
+    if (overlap > bestOverlap) { best = cells; bestOverlap = overlap; }
+    if (t > 40 || overlap > 0) break;
+  }
+  if (!best) return null;
+  best.forEach((idx, k) => { grid[idx] = word.charCodeAt(k) - 64; });
+  return best;
+}
+function fillAndRepair(grid, n, words) {
+  const fixed = new Uint8Array(grid.length);
+  words.forEach(w => w.cells.forEach(i => { fixed[i] = 1; }));
+  const bag = [];
+  words.forEach(w => { for (const ch of w.letters) bag.push(ch.charCodeAt(0) - 64); });
+  const randLetter = () => (Math.random() < 0.7 && bag.length) ? bag[Math.random() * bag.length | 0] : 1 + (Math.random() * 26 | 0);
+  for (let i = 0; i < grid.length; i++) if (!fixed[i]) grid[i] = randLetter();
+  for (let pass = 0; pass < 30; pass++) {
+    let changed = false;
+    for (const w of words) {
+      const occ = findAll(grid, n, w.letters);
+      const planted = w.cells.join(",");
+      for (const cells of occ) {
+        if (cells.join(",") === planted || cells.slice().reverse().join(",") === planted) continue;
+        const free = cells.filter(i => !fixed[i]);
+        if (free.length) { free.forEach(i => { grid[i] = randLetter(); }); changed = true; }
+      }
+    }
+    if (!changed) break;
+  }
+}
+function findAll(grid, n, word) {
+  const L = word.length, first = word.charCodeAt(0) - 64, out = [];
+  for (let z = 0; z < n; z++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (grid[x + n * (y + n * z)] !== first) continue;
+    for (const d of DIRS26) {
+      const ex = x + d[0] * (L - 1), ey = y + d[1] * (L - 1), ez = z + d[2] * (L - 1);
+      if (ex < 0 || ey < 0 || ez < 0 || ex >= n || ey >= n || ez >= n) continue;
+      const cells = []; let ok = true;
+      for (let k = 0; k < L; k++) {
+        const idx = (x + d[0] * k) + n * ((y + d[1] * k) + n * (z + d[2] * k));
+        if (grid[idx] !== word.charCodeAt(k) - 64) { ok = false; break; }
+        cells.push(idx);
+      }
+      if (ok) out.push(cells);
+    }
+  }
+  return out;
+}
+
+/* ================= state ================= */
+const LS_KEY = "orgo-word-lattice-settings-v1";
+const defaults = { chapters: CHAPTERS.slice(), size: 10, dirs: "medium", count: 8, mode: "clue" };
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+    if (s && Array.isArray(s.chapters)) {
+      const ch = s.chapters.filter(c => CHAPTERS.includes(c));
+      return { ...defaults, ...s, chapters: ch.length ? ch : defaults.chapters };
+    }
+  } catch (e) { /* storage unavailable */ }
+  return { ...defaults };
+}
+function saveSettings() { try { localStorage.setItem(LS_KEY, JSON.stringify(S.settings)); } catch (e) { /* ignore */ } }
+
+const S = {
+  settings: loadSettings(),
+  puzzle: null,
+  anchor: -1,
+  hover: -1,
+  preview: [],
+  focus: null,
+  startTime: 0,
+  elapsedBefore: 0,
+  doneAt: 0,
+  hints: 0,
+  hintAtom: -1, hintUntil: 0,
+  flash: null, // {cells, until, rgb}
+};
+
+/* ================= three.js scene ================= */
+const canvas = document.getElementById("lattice");
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x000000, 0);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
+const root = new THREE.Group();
+scene.add(root);
+const FOV_HALF = THREE.MathUtils.degToRad(15);
+const ATOM = 0.64;
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const shared = {
+  uSpread: { value: 1.5 },
+  uHalf: { value: 1 },
+  uPeelT: { value: 1.05 },
+  uCenterZ: { value: 0 },
+};
+
+function makeAtlas() {
+  const cw = 128, cols = 8, rows = 4;
+  const c = document.createElement("canvas");
+  c.width = cw * cols; c.height = cw * rows;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff";
+  g.textAlign = "center";
+  g.textBaseline = "alphabetic";
+  g.font = '800 92px "Martian Mono", ui-monospace, Menlo, Consolas, monospace';
+  const cap = g.measureText("H").actualBoundingBoxAscent || 66;
+  for (let i = 0; i < 26; i++) {
+    const L = String.fromCharCode(65 + i);
+    const cx = (i % cols) * cw + cw / 2, cy = Math.floor(i / cols) * cw + cw / 2 + cap / 2;
+    g.fillText(L, cx, cy);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+}
+
+const atomVert = `
+attribute vec3 aOffset;
+attribute float aLetter;
+attribute vec3 aColor;
+attribute vec2 aState;
+uniform float uSpread, uHalf, uPeelT, uCenterZ, uAtom, uPass;
+varying vec2 vUv;
+varying float vLetter, vAlpha, vFog;
+varying vec3 vColor;
+void main() {
+  vec4 mv = modelViewMatrix * vec4(aOffset * uSpread, 1.0);
+  float rel = (mv.z - uCenterZ) / (uSpread * uHalf);
+  float alpha = aState.x;
+  if (rel > uPeelT) alpha = 0.0;
+  bool solid = alpha > 0.99;
+  if ((uPass < 0.5 && !solid) || (uPass > 0.5 && (solid || alpha < 0.01))) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    return;
+  }
+  mv.xy += position.xy * uAtom * aState.y;
+  gl_Position = projectionMatrix * mv;
+  vUv = uv;
+  vLetter = aLetter;
+  vColor = aColor;
+  vAlpha = alpha;
+  vFog = clamp((0.85 - rel) * 0.28, 0.0, 0.52);
+}`;
+const atomFrag = `
+uniform sampler2D uAtlas;
+uniform vec3 uBg;
+varying vec2 vUv;
+varying float vLetter, vAlpha, vFog;
+varying vec3 vColor;
+void main() {
+  vec2 p = vUv * 2.0 - 1.0;
+  float r = length(p);
+  if (r > 1.0) discard;
+  vec3 n = vec3(p, sqrt(max(0.0, 1.0 - r * r)));
+  vec3 L = normalize(vec3(-0.45, 0.55, 0.7));
+  float diff = max(dot(n, L), 0.0);
+  float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
+  vec3 col = vColor * (0.72 + 0.36 * diff) + spec * 0.22;
+  col *= mix(0.78, 1.0, smoothstep(1.0, 0.82, r));
+  vec2 luv = (vUv - 0.5) * 1.34 + 0.5;
+  float glyph = 0.0;
+  if (luv.x > 0.0 && luv.x < 1.0 && luv.y > 0.0 && luv.y < 1.0) {
+    float li = floor(vLetter + 0.5);
+    float col8 = li - 8.0 * floor(li / 8.0);
+    float row = floor(li / 8.0);
+    vec2 auv = vec2((col8 + luv.x) / 8.0, (3.0 - row + luv.y) / 4.0);
+    glyph = texture2D(uAtlas, auv).a;
+  }
+  float lum = dot(vColor, vec3(0.299, 0.587, 0.114));
+  vec3 ink = lum > 0.5 ? vec3(0.08, 0.10, 0.14) : vec3(1.0);
+  col = mix(col, ink, glyph);
+  col = mix(col, uBg, vFog);
+  float edge = smoothstep(1.0, 0.93, r);
+  gl_FragColor = vec4(col, vAlpha * edge);
+}`;
+
+const bondVert = `
+uniform float uSpread, uHalf, uCenterZ, uPush;
+varying float vRel;
+varying vec3 vN;
+void main() {
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vRel = (mv.z - uCenterZ) / (uSpread * uHalf);
+  vN = normalize(normalMatrix * normal);
+  mv.z -= uPush;
+  gl_Position = projectionMatrix * mv;
+}`;
+const bondFrag = `
+uniform vec3 uColor;
+uniform float uPeelT, uOpacity;
+varying float vRel;
+varying vec3 vN;
+void main() {
+  if (vRel > uPeelT) discard;
+  float l = 0.55 + 0.45 * max(dot(normalize(vN), normalize(vec3(-0.4, 0.6, 0.7))), 0.0);
+  gl_FragColor = vec4(uColor * l, uOpacity);
+}`;
+
+let atlas = null;
+let atomGeo = null, atomSolid = null, atomGhost = null;
+let aColor = null, aState = null, offsets = null;
+const bondGroup = new THREE.Group();
+root.add(bondGroup);
+const frame = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+  new THREE.LineBasicMaterial({ color: 0x3a4a73, transparent: true, opacity: 0.55 })
+);
+root.add(frame);
+const BOND_GEO = new THREE.CylinderGeometry(1, 1, 1, 16, 1, true);
+function bondMaterial(rgb, opacity) {
+  return new THREE.ShaderMaterial({
+    vertexShader: bondVert, fragmentShader: bondFrag,
+    uniforms: {
+      uSpread: shared.uSpread, uHalf: shared.uHalf, uPeelT: shared.uPeelT, uCenterZ: shared.uCenterZ,
+      uPush: { value: ATOM * 0.62 }, uColor: { value: new THREE.Color(rgb[0], rgb[1], rgb[2]) }, uOpacity: { value: opacity }
+    },
+    transparent: opacity < 1, depthWrite: opacity >= 1
+  });
+}
+const previewBond = new THREE.Mesh(BOND_GEO, bondMaterial(C_SEL, 0.9));
+previewBond.visible = false;
+root.add(previewBond);
+
+function buildAtoms(n) {
+  if (atomSolid) { root.remove(atomSolid); root.remove(atomGhost); atomGeo.dispose(); }
+  const count = n * n * n, c = (n - 1) / 2;
+  offsets = new Float32Array(count * 3);
+  const letters = new Float32Array(count);
+  aColor = new Float32Array(count * 3);
+  aState = new Float32Array(count * 2);
+  for (let z = 0; z < n; z++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const i = x + n * (y + n * z);
+    offsets[i * 3] = x - c; offsets[i * 3 + 1] = c - y; offsets[i * 3 + 2] = c - z;
+    letters[i] = S.puzzle.grid[i] - 1;
+  }
+  const base = new THREE.PlaneGeometry(1, 1);
+  atomGeo = new THREE.InstancedBufferGeometry();
+  atomGeo.index = base.index;
+  atomGeo.setAttribute("position", base.getAttribute("position"));
+  atomGeo.setAttribute("uv", base.getAttribute("uv"));
+  atomGeo.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offsets, 3));
+  atomGeo.setAttribute("aLetter", new THREE.InstancedBufferAttribute(letters, 1));
+  atomGeo.setAttribute("aColor", new THREE.InstancedBufferAttribute(aColor, 3));
+  atomGeo.setAttribute("aState", new THREE.InstancedBufferAttribute(aState, 2));
+  atomGeo.instanceCount = count;
+  const mk = (pass) => new THREE.ShaderMaterial({
+    vertexShader: atomVert, fragmentShader: atomFrag,
+    uniforms: {
+      ...shared,
+      uAtlas: { value: atlas }, uBg: { value: new THREE.Color(BG[0], BG[1], BG[2]) },
+      uAtom: { value: ATOM }, uPass: { value: pass }
+    },
+    transparent: true, depthWrite: pass === 0, depthTest: true
+  });
+  atomSolid = new THREE.Mesh(atomGeo, mk(0));
+  atomGhost = new THREE.Mesh(atomGeo, mk(1));
+  atomSolid.frustumCulled = atomGhost.frustumCulled = false;
+  atomSolid.renderOrder = 1; atomGhost.renderOrder = 2;
+  root.add(atomSolid, atomGhost);
+  shared.uHalf.value = Math.max(1, (n - 1) / 2 * Math.sqrt(3));
+}
+
+/* ---------- view state ---------- */
+let zoom = 1;
+const DEFAULT_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.36, -0.52, 0, "XYZ"));
+const hudTop = document.querySelector(".hud-top"), hudBottom = document.querySelector(".hud-bottom");
+function fitCamera() {
+  const n = S.puzzle ? S.puzzle.n : 10;
+  const sp = shared.uSpread.value;
+  const R = ((n - 1) / 2 * sp + ATOM / 2) * Math.sqrt(3);
+  const w = stage.clientWidth || 1, h = stage.clientHeight || 1;
+  camera.aspect = w / h;
+  // keep the cube in the space between the top readout and the bottom controls
+  const sr = stage.getBoundingClientRect();
+  const topH = Math.max(0, hudTop.getBoundingClientRect().bottom - sr.top + 6);
+  const botH = Math.max(0, sr.bottom - hudBottom.getBoundingClientRect().top + 6);
+  const avail = Math.max(h * 0.5, h - topH - botH) / h;
+  const fitH = R / (Math.sin(FOV_HALF) * avail);
+  const fitW = R / Math.sin(Math.atan(Math.tan(FOV_HALF) * camera.aspect));
+  const D = Math.max(fitH, fitW) * 0.98 * zoom;
+  const shiftPx = (topH - botH) / 2;
+  camera.position.set(0, shiftPx * (2 * D * Math.tan(FOV_HALF)) / h, D);
+  camera.near = 0.1; camera.far = camera.position.z + R * 4;
+  camera.updateProjectionMatrix();
+}
+function applySpread() {
+  const n = S.puzzle.n, sp = shared.uSpread.value;
+  const side = (n - 1) * sp + ATOM * 1.1;
+  frame.scale.set(side, side, side);
+  rebuildBonds();
+  fitCamera();
+  invalidate();
+}
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  fitCamera();
+  invalidate();
+}
+new ResizeObserver(resize).observe(stage);
+
+/* ---------- bonds ---------- */
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+function cellPos(i, out) {
+  const sp = shared.uSpread.value;
+  return out.set(offsets[i * 3] * sp, offsets[i * 3 + 1] * sp, offsets[i * 3 + 2] * sp);
+}
+function orientBond(mesh, i0, i1, radius) {
+  cellPos(i0, _a); cellPos(i1, _b);
+  const len = _a.distanceTo(_b);
+  mesh.position.copy(_a).add(_b).multiplyScalar(0.5);
+  mesh.quaternion.setFromUnitVectors(_up, _b.sub(_a).normalize());
+  mesh.scale.set(radius, Math.max(len, 0.001), radius);
+}
+function rebuildBonds() {
+  while (bondGroup.children.length) { const m = bondGroup.children.pop(); m.material.dispose(); }
+  if (!S.puzzle) return;
+  for (const w of S.puzzle.words) {
+    if (!w.found) continue;
+    const m = new THREE.Mesh(BOND_GEO, bondMaterial(ELEMENTS[w.color].rgb, 1));
+    orientBond(m, w.path[0], w.path[w.path.length - 1], 0.15);
+    bondGroup.add(m);
+  }
+  updatePreviewBond();
+}
+function updatePreviewBond() {
+  if (S.preview.length > 1) {
+    orientBond(previewBond, S.preview[0], S.preview[S.preview.length - 1], 0.09);
+    previewBond.visible = true;
+  } else previewBond.visible = false;
+}
+
+/* ---------- atom appearance ---------- */
+function foundColorMap() {
+  const n3 = S.puzzle.grid.length, map = new Int16Array(n3).fill(-1);
+  for (const w of S.puzzle.words) if (w.found) w.path.forEach(i => { map[i] = w.color; });
+  return map;
+}
+function refreshAtoms() {
+  if (!S.puzzle) return;
+  const n3 = S.puzzle.grid.length, fmap = foundColorMap();
+  const pathSet = new Set(S.preview);
+  const now = performance.now();
+  const flash = S.flash && now < S.flash.until ? new Set(S.flash.cells) : null;
+  for (let i = 0; i < n3; i++) {
+    let rgb = fmap[i] >= 0 ? ELEMENTS[fmap[i]].rgb : C_H;
+    let alpha = 1, scale = 1;
+    if (S.anchor >= 0 && !S.focus.has(i)) { alpha = 0.1; scale = 0.72; }
+    if (pathSet.has(i)) { rgb = C_PATH; scale = 1.1; }
+    if (i === S.anchor) { rgb = C_SEL; scale = 1.22; }
+    if (flash && flash.has(i)) { rgb = S.flash.rgb; alpha = 1; scale = 1.12; }
+    if (i === S.hover && S.anchor < 0) scale = Math.max(scale, 1.16);
+    if (i === S.hover && S.anchor >= 0 && S.focus.has(i)) scale = Math.max(scale, 1.16);
+    if (i === S.hintAtom && now < S.hintUntil) {
+      rgb = C_SEL; alpha = 1;
+      scale = reduceMotion ? 1.3 : 1.2 + 0.18 * Math.sin(now / 140);
+    }
+    aColor[i * 3] = rgb[0]; aColor[i * 3 + 1] = rgb[1]; aColor[i * 3 + 2] = rgb[2];
+    aState[i * 2] = alpha; aState[i * 2 + 1] = scale;
+  }
+  atomGeo.getAttribute("aColor").needsUpdate = true;
+  atomGeo.getAttribute("aState").needsUpdate = true;
+  invalidate();
+}
+
+/* ---------- render loop ---------- */
+let raf = 0;
+const spin = { x: 0, y: 0 };
+function invalidate() { if (!raf) raf = requestAnimationFrame(frameLoop); }
+const _v = new THREE.Vector3();
+function frameLoop() {
+  raf = 0;
+  let again = false;
+  if (Math.abs(spin.x) + Math.abs(spin.y) > 0.00005 && !dragging) {
+    rotateBy(spin.x, spin.y);
+    spin.x *= 0.92; spin.y *= 0.92;
+    again = true;
+  }
+  const now = performance.now();
+  if (S.hintAtom >= 0 && now < S.hintUntil) { refreshAtoms(); again = true; }
+  else if (S.hintAtom >= 0) { S.hintAtom = -1; refreshAtoms(); }
+  if (S.flash && now >= S.flash.until) { S.flash = null; refreshAtoms(); }
+  else if (S.flash) again = true;
+  root.updateMatrixWorld();
+  camera.updateMatrixWorld();
+  _v.setFromMatrixPosition(root.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+  shared.uCenterZ.value = _v.z;
+  renderer.render(scene, camera);
+  if (again) invalidate();
+}
+const _qa = new THREE.Quaternion(), _ax = new THREE.Vector3();
+function rotateBy(dx, dy) {
+  _qa.setFromAxisAngle(_ax.set(0, 1, 0), dx); root.quaternion.premultiply(_qa);
+  _qa.setFromAxisAngle(_ax.set(1, 0, 0), dy); root.quaternion.premultiply(_qa);
+}
+
+/* ---------- picking ---------- */
+const _m = new THREE.Matrix4(), _p = new THREE.Vector3();
+function pick(clientX, clientY, touch) {
+  if (!S.puzzle) return -1;
+  const rect = canvas.getBoundingClientRect();
+  const px = clientX - rect.left, py = clientY - rect.top;
+  root.updateMatrixWorld(); camera.updateMatrixWorld();
+  _m.multiplyMatrices(camera.matrixWorldInverse, root.matrixWorld);
+  const e = _m.elements, sp = shared.uSpread.value, half = shared.uHalf.value;
+  _v.setFromMatrixPosition(root.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+  const cz = _v.z, peel = shared.uPeelT.value;
+  const f = (rect.height / 2) / Math.tan(FOV_HALF);
+  let best = -1, bestZ = -Infinity, near = -1, nearD = Infinity;
+  const n3 = S.puzzle.grid.length;
+  for (let i = 0; i < n3; i++) {
+    if (aState[i * 2] < 0.5) continue;
+    const x = offsets[i * 3] * sp, y = offsets[i * 3 + 1] * sp, z = offsets[i * 3 + 2] * sp;
+    const vx = e[0] * x + e[4] * y + e[8] * z + e[12];
+    const vy = e[1] * x + e[5] * y + e[9] * z + e[13];
+    const vz = e[2] * x + e[6] * y + e[10] * z + e[14];
+    if ((vz - cz) / (sp * half) > peel) continue;
+    const sx = rect.width / 2 + f * vx / -vz, sy = rect.height / 2 - f * vy / -vz;
+    const r = f * (ATOM * aState[i * 2 + 1] / 2) / -vz;
+    const d = Math.hypot(px - sx, py - sy);
+    if (d <= r && vz > bestZ) { best = i; bestZ = vz; }
+    if (d < nearD) { nearD = d; near = i; }
+  }
+  if (best >= 0) return best;
+  return nearD <= (touch ? 22 : 10) ? near : -1;
+}
+
+/* ---------- selection logic ---------- */
+const coord = (i, n) => [i % n, Math.floor(i / n) % n, Math.floor(i / (n * n))];
+function focusSet(anchor) {
+  const n = S.puzzle.n, [x0, y0, z0] = coord(anchor, n), set = new Set([anchor]);
+  const ds = dirsFor(S.puzzle.dirs);
+  const all = ds.concat(ds.map(d => d.map(v => -v)));
+  for (const d of all) {
+    for (let k = 1; k < n; k++) {
+      const x = x0 + d[0] * k, y = y0 + d[1] * k, z = z0 + d[2] * k;
+      if (x < 0 || y < 0 || z < 0 || x >= n || y >= n || z >= n) break;
+      set.add(x + n * (y + n * z));
+    }
+  }
+  return set;
+}
+function lineBetween(a, b) {
+  const n = S.puzzle.n, A = coord(a, n), B = coord(b, n);
+  const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+  const k = Math.max(...d.map(Math.abs));
+  if (k === 0 || d.some(v => v !== 0 && Math.abs(v) !== k)) return null;
+  const u = d.map(v => v / k), cells = [];
+  for (let s = 0; s <= k; s++) cells.push((A[0] + u[0] * s) + n * ((A[1] + u[1] * s) + n * (A[2] + u[2] * s)));
+  return cells;
+}
+const spell = cells => cells.map(i => String.fromCharCode(64 + S.puzzle.grid[i])).join("");
+
+function tapAtom(i) {
+  if (!S.puzzle || isComplete()) { if (i < 0) clearAnchor(); return; }
+  if (i < 0) { if (S.anchor >= 0) { clearAnchor(); say("Selection cleared. Tap the first letter of a term."); } return; }
+  if (S.anchor < 0) {
+    S.anchor = i; S.focus = focusSet(i); S.preview = [];
+    say(`Starting at ${spell([i])}. Now tap the last letter. Tap the yellow letter again to cancel.`);
+    refreshAtoms(); updatePreviewBond();
+    return;
+  }
+  if (i === S.anchor) { clearAnchor(); say("Selection cleared. Tap the first letter of a term."); return; }
+  const cells = lineBetween(S.anchor, i);
+  if (!cells) { clearAnchor(); return; }
+  const s = spell(cells), r = rev(s);
+  const w = S.puzzle.words.find(w => w.letters === s || w.letters === r);
+  if (w && !w.found) {
+    w.found = true;
+    w.path = w.letters === s ? cells : cells.slice().reverse();
+    w.color = S.puzzle.words.filter(x => x.found).length - 1;
+    w.color %= ELEMENTS.length;
+    clearAnchor(false);
+    rebuildBonds(); refreshAtoms(); renderList(); updateScore();
+    say(`Bonded: ${w.answer} (Ch ${w.ch}).`, "good");
+    if (isComplete()) finish();
+  } else if (w && w.found) {
+    clearAnchor(); say(`${w.answer} is already bonded.`);
+  } else {
+    S.flash = { cells, until: performance.now() + 520, rgb: C_BAD };
+    clearAnchor();
+    say(`${s} is not one of the terms. Try another line.`, "bad");
+  }
+}
+function clearAnchor(refresh = true) {
+  S.anchor = -1; S.focus = null; S.preview = [];
+  updatePreviewBond();
+  if (refresh) refreshAtoms();
+}
+function hoverAtom(i) {
+  if (i === S.hover) return;
+  S.hover = i;
+  let preview = [];
+  if (S.anchor >= 0 && i >= 0 && i !== S.anchor && S.focus.has(i)) preview = lineBetween(S.anchor, i) || [];
+  S.preview = preview;
+  updatePreviewBond();
+  canvas.classList.toggle("over-atom", i >= 0);
+  refreshAtoms();
+}
+
+/* ---------- pointer input ---------- */
+const pointers = new Map();
+let dragging = false, downX = 0, downY = 0, lastX = 0, lastY = 0, pinchD = 0, moved = false;
+canvas.addEventListener("pointerdown", e => {
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 1) {
+    downX = lastX = e.clientX; downY = lastY = e.clientY; moved = false; dragging = false;
+    spin.x = spin.y = 0;
+  } else if (pointers.size === 2) {
+    const [p, q] = [...pointers.values()];
+    pinchD = Math.hypot(p.x - q.x, p.y - q.y); moved = true;
+  }
+});
+canvas.addEventListener("pointermove", e => {
+  if (!pointers.has(e.pointerId)) {
+    if (e.pointerType === "mouse") hoverAtom(pick(e.clientX, e.clientY, false));
+    return;
+  }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) {
+    const [p, q] = [...pointers.values()];
+    const d = Math.hypot(p.x - q.x, p.y - q.y);
+    if (pinchD > 0) { zoom = THREE.MathUtils.clamp(zoom * pinchD / d, 0.4, 1.8); fitCamera(); invalidate(); }
+    pinchD = d;
+    return;
+  }
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) > 6) { moved = true; dragging = true; canvas.classList.add("dragging"); }
+  if (dragging) {
+    const k = 0.0085;
+    rotateBy(dx * k, dy * k);
+    spin.x = reduceMotion ? 0 : dx * k; spin.y = reduceMotion ? 0 : dy * k;
+    invalidate();
+  }
+  lastX = e.clientX; lastY = e.clientY;
+});
+function endPointer(e) {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.delete(e.pointerId);
+  if (pointers.size === 0) {
+    if (!moved && e.type === "pointerup") tapAtom(pick(e.clientX, e.clientY, e.pointerType !== "mouse"));
+    dragging = false; canvas.classList.remove("dragging");
+    invalidate();
+  }
+  if (pointers.size < 2) pinchD = 0;
+}
+canvas.addEventListener("pointerup", endPointer);
+canvas.addEventListener("pointercancel", endPointer);
+canvas.addEventListener("pointerleave", e => { if (e.pointerType === "mouse" && !pointers.size) hoverAtom(-1); });
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  zoom = THREE.MathUtils.clamp(zoom * Math.exp(e.deltaY * 0.0012), 0.4, 1.8);
+  fitCamera(); invalidate();
+}, { passive: false });
+canvas.addEventListener("keydown", e => {
+  const k = 0.12;
+  if (e.key === "ArrowLeft") rotateBy(-k, 0);
+  else if (e.key === "ArrowRight") rotateBy(k, 0);
+  else if (e.key === "ArrowUp") rotateBy(0, -k);
+  else if (e.key === "ArrowDown") rotateBy(0, k);
+  else if (e.key === "Escape") { clearAnchor(); say("Selection cleared."); }
+  else return;
+  e.preventDefault(); invalidate();
+});
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+const statusEl = $("status");
+function say(msg, tone) {
+  statusEl.textContent = msg;
+  statusEl.classList.toggle("good", tone === "good");
+  statusEl.classList.toggle("bad", tone === "bad");
+}
+const isComplete = () => S.puzzle && S.puzzle.words.length > 0 && S.puzzle.words.every(w => w.found);
+function elapsedMs() {
+  if (!S.startTime) return S.elapsedBefore;
+  return S.elapsedBefore + ((S.doneAt || Date.now()) - S.startTime);
+}
+const fmt = ms => { const s = Math.floor(ms / 1000); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+function updateScore() {
+  const w = S.puzzle ? S.puzzle.words : [];
+  $("found-count").textContent = w.filter(x => x.found).length;
+  $("total-count").textContent = w.length;
+}
+setInterval(() => { $("clock").textContent = fmt(elapsedMs()); }, 500);
+
+function chapterSpan(chs) {
+  const a = chs.slice().sort((x, y) => x - y);
+  if (!a.length) return "";
+  const parts = []; let s = a[0], p = a[0];
+  for (let i = 1; i <= a.length; i++) {
+    if (a[i] === p + 1) { p = a[i]; continue; }
+    parts.push(s === p ? `${s}` : `${s}–${p}`);
+    s = p = a[i];
+  }
+  return parts.join(", ");
+}
+
+function renderList() {
+  const ul = $("word-list");
+  ul.textContent = "";
+  if (!S.puzzle) return;
+  const mode = S.settings.mode;
+  for (const w of S.puzzle.words) {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "word" + (w.found ? " found" : "");
+    if (!w.found) b.tabIndex = -1;
+    const chip = document.createElement("span");
+    chip.className = "atom-chip";
+    chip.setAttribute("aria-hidden", "true");
+    if (w.found) {
+      const el = ELEMENTS[w.color];
+      chip.style.background = el.hex; chip.style.color = inkFor(el.rgb); chip.textContent = el.sym;
+    } else chip.textContent = w.ch;
+    const body = document.createElement("span");
+    body.className = "word-body";
+    const meta = `Ch ${w.ch} · ${w.letters.length} letters`;
+    if (w.found) {
+      body.innerHTML = `<span class="word-term"></span><span class="word-main clue"></span><span class="word-meta"></span>`;
+      body.children[0].textContent = w.answer.toUpperCase();
+      body.children[1].textContent = w.clue;
+      body.children[2].textContent = meta;
+      b.setAttribute("aria-label", `${w.answer}, found. Show it in the cube.`);
+      b.addEventListener("click", () => showWord(w));
+    } else if (mode === "clue") {
+      body.innerHTML = `<span class="word-main"></span><span class="word-meta"></span>`;
+      body.children[0].textContent = w.clue;
+      body.children[1].textContent = meta;
+      if (w.hinted) {
+        const h = document.createElement("span"); h.className = "hint"; h.textContent = ` · starts with ${w.letters[0]}`;
+        body.children[1].appendChild(h);
+      }
+    } else {
+      body.innerHTML = `<span class="word-term"></span><span class="word-meta"></span>`;
+      body.children[0].textContent = w.answer.toUpperCase();
+      body.children[1].textContent = meta;
+    }
+    b.append(chip, body);
+    li.appendChild(b);
+    ul.appendChild(li);
+  }
+}
+function showWord(w) {
+  S.flash = { cells: w.path, until: performance.now() + 1400, rgb: C_SEL };
+  say(`${w.answer} is highlighted in the cube.`);
+  refreshAtoms();
+}
+
+/* ---------- setup panel ---------- */
+const chipsEl = $("chapter-chips");
+function renderChapterChips() {
+  chipsEl.textContent = "";
+  for (const ch of CHAPTERS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = ch;
+    b.setAttribute("aria-pressed", String(S.settings.chapters.includes(ch)));
+    const name = TERMS.chapterNames[ch] || "";
+    b.title = name ? `Ch ${ch}: ${name}` : `Ch ${ch}`;
+    b.setAttribute("aria-label", b.title);
+    b.addEventListener("click", () => {
+      const set = new Set(S.settings.chapters);
+      set.has(ch) ? set.delete(ch) : set.add(ch);
+      S.settings.chapters = [...set].sort((a, x) => a - x);
+      saveSettings(); renderChapterChips(); updateBuildNote();
+    });
+    b.addEventListener("mouseenter", () => { $("ch-title").textContent = b.title; });
+    b.addEventListener("focus", () => { $("ch-title").textContent = b.title; });
+    chipsEl.appendChild(b);
+  }
+}
+$("ch-all").addEventListener("click", () => { S.settings.chapters = CHAPTERS.slice(); saveSettings(); renderChapterChips(); updateBuildNote(); });
+$("ch-none").addEventListener("click", () => { S.settings.chapters = []; saveSettings(); renderChapterChips(); updateBuildNote(); });
+
+function renderCountChips() {
+  const el = $("count-chips"); el.textContent = "";
+  for (const c of [6, 8, 10, 12]) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = c;
+    b.setAttribute("aria-pressed", String(S.settings.count === c));
+    b.addEventListener("click", () => { S.settings.count = c; saveSettings(); renderCountChips(); updateBuildNote(); });
+    el.appendChild(b);
+  }
+}
+document.querySelectorAll('input[name="size"]').forEach(r => {
+  r.checked = +r.value === S.settings.size;
+  r.addEventListener("change", () => { S.settings.size = +r.value; saveSettings(); updateBuildNote(); });
+});
+document.querySelectorAll('input[name="dirs"]').forEach(r => {
+  r.checked = r.value === S.settings.dirs;
+  r.addEventListener("change", () => { S.settings.dirs = r.value; saveSettings(); });
+});
+function poolSize() { return TERMS.terms.filter(t => S.settings.chapters.includes(t.ch) && t.letters.length <= S.settings.size).length; }
+function updateBuildNote() {
+  const note = $("build-note"), p = poolSize(), btn = $("build-btn");
+  note.classList.remove("warn");
+  if (!S.settings.chapters.length) { note.textContent = "Pick at least one chapter."; note.classList.add("warn"); btn.disabled = true; return; }
+  if (p < 3) { note.textContent = `Only ${p} terms fit. Add chapters or use a bigger cube.`; note.classList.add("warn"); btn.disabled = true; return; }
+  btn.disabled = false;
+  note.textContent = `${p} terms fit these chapters and this cube size.` + (p < S.settings.count ? ` The lattice will hold ${p}.` : "");
+}
+function renderTermCheck() {
+  const el = $("termcheck");
+  const k = TERMS.skipped.length;
+  el.textContent = `Term list: ${TERMS.terms.length} terms loaded` + (k ? `, ${k} skipped:` : ".");
+  if (k) {
+    const ul = document.createElement("ul");
+    TERMS.skipped.forEach(s => { const li = document.createElement("li"); li.textContent = `line ${s.line}: ${s.text.slice(0, 40)} (${s.why})`; ul.appendChild(li); });
+    el.appendChild(ul);
+  }
+}
+
+let armReplace = 0;
+$("build-btn").addEventListener("click", () => {
+  const inProgress = S.puzzle && !isComplete() && S.puzzle.words.some(w => w.found);
+  const btn = $("build-btn");
+  if (inProgress && Date.now() > armReplace) {
+    armReplace = Date.now() + 4000;
+    btn.textContent = "Tap again to replace this lattice";
+    setTimeout(() => { btn.textContent = "Build new lattice"; }, 4000);
+    return;
+  }
+  armReplace = 0; btn.textContent = "Build new lattice";
+  newPuzzle();
+});
+
+function setMode(m) {
+  S.settings.mode = m; saveSettings();
+  $("mode-clue").setAttribute("aria-pressed", String(m === "clue"));
+  $("mode-word").setAttribute("aria-pressed", String(m === "word"));
+  renderList();
+}
+$("mode-clue").addEventListener("click", () => setMode("clue"));
+$("mode-word").addEventListener("click", () => setMode("word"));
+
+$("hint-btn").addEventListener("click", () => {
+  if (!S.puzzle || isComplete()) return;
+  const left = S.puzzle.words.filter(w => !w.found);
+  const w = left.find(x => !x.hinted) || left[Math.random() * left.length | 0];
+  if (!w.hinted) { w.hinted = true; S.hints++; renderList(); }
+  clearAnchor(false);
+  if (+$("peel").value > 0) { $("peel").value = 0; shared.uPeelT.value = 1.05; }
+  S.hintAtom = w.cells[0]; S.hintUntil = performance.now() + 3200;
+  say(`Hint: the pulsing letter ${w.letters[0]} starts one of the terms.`);
+  refreshAtoms();
+});
+$("reset-btn").addEventListener("click", () => {
+  root.quaternion.copy(DEFAULT_Q); zoom = 1; spin.x = spin.y = 0;
+  fitCamera(); invalidate();
+});
+$("spread").addEventListener("input", e => { shared.uSpread.value = +e.target.value / 100; applySpread(); });
+$("peel").addEventListener("input", e => { shared.uPeelT.value = 1.05 - (+e.target.value / 100) * 1.75; if (S.hover >= 0) hoverAtom(-1); invalidate(); });
+
+$("done-close").addEventListener("click", () => { $("complete").hidden = true; });
+$("done-new").addEventListener("click", () => { $("complete").hidden = true; newPuzzle(); });
+
+function finish() {
+  S.doneAt = Date.now();
+  const p = S.puzzle;
+  $("done-terms").textContent = `${p.words.length} of ${p.words.length}`;
+  $("done-time").textContent = fmt(elapsedMs());
+  $("done-hints").textContent = String(S.hints);
+  $("done-ch").textContent = chapterSpan(p.chapters);
+  $("done-cube").textContent = `${p.n}×${p.n}×${p.n}, ${DIR_LABEL[p.dirs]}`;
+  $("done-when").textContent = new Date(S.doneAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  setTimeout(() => { $("complete").hidden = false; $("done-new").focus(); }, reduceMotion ? 0 : 650);
+}
+
+/* ---------- lifecycle ---------- */
+function newPuzzle() {
+  const p = generate(S.settings);
+  if (!p) { say("Could not build a lattice with these settings. Try more chapters or a bigger cube.", "bad"); return; }
+  installPuzzle(p, { elapsed: 0, hints: 0 });
+  say("New lattice. Drag to turn the cube, then tap the first letter of a term.");
+}
+function installPuzzle(p, extra) {
+  S.puzzle = p;
+  S.anchor = -1; S.focus = null; S.preview = []; S.hover = -1; S.flash = null; S.hintAtom = -1;
+  S.hints = extra.hints || 0;
+  S.elapsedBefore = extra.elapsed || 0;
+  S.doneAt = 0;
+  S.startTime = Date.now();
+  buildAtoms(p.n);
+  if (extra.quat) root.quaternion.fromArray(extra.quat); else root.quaternion.copy(DEFAULT_Q);
+  zoom = 1;
+  applySpread();
+  refreshAtoms();
+  renderList(); updateScore();
+  $("complete").hidden = true;
+  if (isComplete()) { S.doneAt = S.startTime; }
+  $("course-label").textContent = `${TERMS.course || "Key terms"} · Ch ${chapterSpan(p.chapters)}`;
+}
+
+function start(data) {
+  data = data || {};
+  if (data.settings) S.settings = { ...S.settings, ...data.settings };
+  shared.uSpread.value = +$("spread").value / 100;
+  renderChapterChips(); renderCountChips(); updateBuildNote(); renderTermCheck();
+  setMode(S.settings.mode);
+  if (data.puzzle) installPuzzle(data.puzzle, { elapsed: data.elapsed, hints: data.hints, quat: data.quat });
+  else newPuzzle();
+  say("Drag to turn the cube. Tap the first letter of a term.");
+  resize();
+}
+window.claude?.hot?.snapshot?.(() => ({
+  settings: S.settings, puzzle: S.puzzle, elapsed: elapsedMs(), hints: S.hints, quat: root.quaternion.toArray()
+}));
+
+function boot() {
+  atlas = makeAtlas();
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+}
+const fontReady = document.fonts && document.fonts.load
+  ? Promise.race([document.fonts.load('800 92px "Martian Mono"'), new Promise(r => setTimeout(r, 1800))])
+  : Promise.resolve();
+fontReady.then(boot, boot);
+
+})();
+</script>
+
+</body>
+</html>

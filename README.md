@@ -8,6 +8,7 @@ list is here if you want to come back and practice.
 
 | Topic | Page | What it is |
 | --- | --- | --- |
+| Key terms, chapters 1–11 | [Orgo Word Lattice](https://neogio73.github.io/CHM2210/word-lattice.html) | A 3D word search: key terms from chapters 1–11 hidden along straight lines through a rotating cube of letters, including lines through the middle; find them from clues or from a word list, with three cube sizes and three difficulty levels |
 | Cyclohexane conformations | [Chair Lab](https://neogio73.github.io/CHM2210/chair-lab.html) | Explore a 3D chair, read axial and equatorial positions, flip the ring, then take the chair challenges |
 | Stereochemistry | [Stereochemistry Lab](https://neogio73.github.io/CHM2210/stereochemistry-lab.html) | Explore a tetrahedral center, rank its groups and read R or S, compare two stereocenters, then the challenges on enantiomers, diastereomers and meso compounds |
 | Stereochemistry | [Stereochemistry Practice](https://neogio73.github.io/CHM2210/stereochemistry-practice.html) | R/S and E/Z on 3D models of real molecules (ibuprofen, menthol, L-cysteine, substituted alkenes), with a results page and the questions to review |
@@ -32,6 +33,10 @@ home. The other two are for studying on your own; each ends with challenges.
   Each deck is a single file: its structures are drawn in the page and its 3D models use a small viewer
   built into the page. Only the fonts load from Google Fonts. A student's Got it / Review marks are saved
   in their own browser and are not sent anywhere.
+- Orgo Word Lattice is a single file. It loads [three.js](https://threejs.org/) (r128, MIT license) from cdnjs and its
+  fonts from Google Fonts. Its term list is a plain-text block near the top of `word-lattice.html`, one term per
+  line as `chapter | answer | clue`. Only the answer's letters go into the cube, so an answer needs 3 to 12 letters.
+  After an edit, open the page and look under "New lattice": it says how many terms loaded and lists any skipped line.
 - Polymers & the Surf Zone is a single file. Its structures were drawn with RDKit and its photos are
   embedded in the page, so only the fonts load from Google Fonts. Photo credits: Mavericks by Shalom
   Jacobovitz ([CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)), Teahupo'o by Olivier
@@ -40,6 +45,6 @@ home. The other two are for studying on your own; each ends with challenges.
 - The pages cite the sections of the open textbook they follow: [OpenStax Organic
   Chemistry](https://openstax.org/details/books/organic-chemistry), chapters 4 (cyclohexane), 5
   (stereochemistry), 8 and 9 (alkenes and alkynes), and 31 (synthetic polymers; radical polymerization
-  is in section 8.10).
+  is in section 8.10). Orgo Word Lattice uses the Key Terms lists of chapters 1–11, with clues written for the puzzle.
 - The repository is published with GitHub Pages from the `main` branch, so every file is served at
   `https://neogio73.github.io/CHM2210/` followed by its name.
