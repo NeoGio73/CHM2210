@@ -11,7 +11,7 @@
 // neoprene hood, a red flotation vest, a leash from the tail to the back ankle. The board is the
 // bought board's shape only, painted here (BOARD_PAINT): the pack's own textures were not used.
 import * as THREE from 'three';
-import { loadPak } from './models.js?v=3b3873500c';
+import { loadPak } from './models.js?v=8a71de973d';
 
 // The board's paint: change these and reload. Colours as CSS colours; null leaves a part out.
 // After his reference photo (29 October 2026): a lime-green gun, a thin dark line round the rails,
@@ -79,8 +79,8 @@ function boardUVs(geo) {
 // opts.kit: 'cold' (Mavericks: hood, gloves, booties, vest) or 'warm' (Teahupo'o: the vest only)
 export async function upgradeRider(rider, opts = {}) {
   const warm = opts.kit === 'warm';
-  const [sg, bg] = await Promise.all([loadPak(new URL('./models/surfer.pak?v=3b3873500c', import.meta.url), 'surfer'),
-                                      loadPak(new URL('./models/board.pak?v=3b3873500c', import.meta.url), 'board')]);
+  const [sg, bg] = await Promise.all([loadPak(new URL('./models/surfer.pak?v=8a71de973d', import.meta.url), 'surfer'),
+                                      loadPak(new URL('./models/board.pak?v=8a71de973d', import.meta.url), 'board')]);
   const G = rider.group, P = rider.parts;
 
   // ---- the board ----

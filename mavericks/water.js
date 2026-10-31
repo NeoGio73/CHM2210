@@ -1,6 +1,6 @@
 // Water materials: the open sea and the breaking waves.
 import * as THREE from 'three';
-import { glsl as swellGlsl, CENTER, HALF } from './swell.js?v=3b3873500c';
+import { glsl as swellGlsl, CENTER, HALF } from './swell.js?v=8a71de973d';
 
 // The water's look, all in one place (linear colours, 0..1). Mavericks is cold, grey-green
 // water; these keep that but brighter and bluer than before, with the wave's face lighter

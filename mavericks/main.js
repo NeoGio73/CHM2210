@@ -4,14 +4,14 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Breaker, LIP, LIP_TIP, CREST, NP, setStripHalfWidth, SHAPE, setLipShape } from './breaker.js?v=3b3873500c';
-import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js?v=3b3873500c';
-import { Reflection } from './reflect.js?v=3b3873500c';
-import { upgradeRider } from './surfer.js?v=3b3873500c';
-import * as Swell from './swell.js?v=3b3873500c';
-import { Board, buildRider } from './rider.js?v=3b3873500c';
-import { Sound } from './sound.js?v=3b3873500c';
-import { buildLandmarks } from './landmarks.js?v=3b3873500c';
+import { Breaker, LIP, LIP_TIP, CREST, NP, setStripHalfWidth, SHAPE, setLipShape } from './breaker.js?v=8a71de973d';
+import { common, oceanMaterial, waveMaterial, PALETTE, puffMaterial, puffAtlas } from './water.js?v=8a71de973d';
+import { Reflection } from './reflect.js?v=8a71de973d';
+import { upgradeRider } from './surfer.js?v=8a71de973d';
+import * as Swell from './swell.js?v=8a71de973d';
+import { Board, buildRider } from './rider.js?v=8a71de973d';
+import { Sound } from './sound.js?v=8a71de973d';
+import { buildLandmarks } from './landmarks.js?v=8a71de973d';
 
 const $ = id => document.getElementById(id);
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -22,10 +22,10 @@ const SPOT = (new URLSearchParams(location.search).get('spot') || '').replace(/[
 const DAY = new URLSearchParams(location.search).get('day');
 const D = SPOT ? `data/${SPOT}/` : 'data/';
 const [wave, tmeta, tbuf, dayList] = await Promise.all([
-  fetch(DAY && /^[0-9-]+$/.test(DAY) ? `${D}days/${DAY}.json?v=3b3873500c` : `${D}wave.json?v=3b3873500c`).then(r => r.ok ? r.json() : fetch(`${D}wave.json?v=3b3873500c`).then(q => q.json())),
-  fetch(`${D}terrain.json?v=3b3873500c`).then(r => r.json()),
-  fetch(`${D}terrain.bin?v=3b3873500c`).then(r => r.arrayBuffer()),
-  fetch(`${D}days.json?v=3b3873500c`).then(r => r.json()).catch(() => []),
+  fetch(DAY && /^[0-9-]+$/.test(DAY) ? `${D}days/${DAY}.json?v=8a71de973d` : `${D}wave.json?v=8a71de973d`).then(r => r.ok ? r.json() : fetch(`${D}wave.json?v=8a71de973d`).then(q => q.json())),
+  fetch(`${D}terrain.json?v=8a71de973d`).then(r => r.json()),
+  fetch(`${D}terrain.bin?v=8a71de973d`).then(r => r.arrayBuffer()),
+  fetch(`${D}days.json?v=8a71de973d`).then(r => r.json()).catch(() => []),
 ]);
 // how the break is laid out; Mavericks' values (below) when the spot's data leaves them out
 const BRK = wave.break || {};
@@ -746,7 +746,16 @@ function placeSurfer(dt) {
 // the surfer's state as a plain record: drawn now, and kept for the replay
 function frameNow() {
   const wiped = board.mode === 'wipe' || (board.mode === 'out' && board.wipeT > 0);
-  return { t: clock, x: board.x, y: board.y, h: board.h, hd: board.heading, steer: board.steer, vx: board.vx, vy: board.vy, hx: board.hx || 0, hy: board.hy || 0,
+  // The physics keeps the board's middle on the water. A straight 3.2 m board crossing a hollow
+  // (the trough in front of a steepening face) would then have its nose and tail under it, so as
+  // drawn it rests where it touches: lifted onto the water at the nose and tail when that is higher.
+  let h = board.h;
+  if (!wiped) {
+    const fx = Math.cos(board.heading), fy = Math.sin(board.heading), e = 1.5;
+    const hn = surface(board.x + fx * e, board.y + fy * e, board.h), ht = surface(board.x - fx * e, board.y - fy * e, board.h);
+    h = Math.max(h, (hn + ht) / 2);
+  }
+  return { t: clock, x: board.x, y: board.y, h, hd: board.heading, steer: board.steer, vx: board.vx, vy: board.vy, hx: board.hx || 0, hy: board.hy || 0,
     riding: board.mode === 'ride', wiped, wipeT: board.wipeT, hide: board.mode === 'out' && board.wipeT > 0,
     paddling: board.mode === 'paddle', pop: wiped ? 1 : poseP, crouch: crouchP, tuck: tuckP };
 }

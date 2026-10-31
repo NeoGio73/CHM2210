@@ -59,11 +59,16 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
   const curtS = lamS * (1 - bore);                       // the lip is a falling sheet
   const setFx = (k, l, c) => { if (fx) { fx[2 * k] = l; fx[2 * k + 1] = c; } };
 
+  // Over deep water the wave's shape is broad (sigma up to 70 m): at the strip's ends it still stood
+  // a metre or so above the open sea, a step the board fell off and the eye saw as a line. Its
+  // height now fades to nothing over the outer part of the strip, so a strip always meets the sea.
+  const edge = x => x < 0 ? 1 - smooth(0.55 * XB, 0.95 * XB, -x) : 1 - smooth(0.55 * XF, 0.95 * XF, x);
+
   let k = 0;
   // back slope, denser toward the crest
   for (let i = 0; i < NB; i++, k++) {
     const q = i / (NB - 1), x = -XB * (1 - q) * (1 - q);
-    px[k] = x; py[k] = Hc * sech2(x / sigma);
+    px[k] = x; py[k] = Hc * sech2(x / sigma) * edge(x);
     foam[k] = bore * whiteAge * smooth(-25, 0, x) * 0.9;
     thin[k] = 0;
     setFx(k, laceS * smooth(-0.6 * Hc, 0, x) * 0.6, 0);
@@ -140,7 +145,7 @@ export function profile(H, depth, tau, px, py, foam, thin, power = 1, fx = null)
       const x0 = (1 - wall) * (0.95 * Hc + 2) + wall * F[0];
       const xb = boreAt(1)[0], start = x0 + (xb - x0) * bore;
       x = start + (XF - start) * q * q;
-      y = (1 - wall) * Hc * sech2(x / sF) * (1 - bore) - dip(x);
+      y = (1 - wall) * Hc * sech2(x / sF) * (1 - bore) * edge(x) - dip(x);
       foam[k] = bore * whiteAge * smooth(0.6, 0, q) * 0.9;
       thin[k] = 0;
       setFx(k, laceS * smooth(0.5, 0, q) * 0.5, 0);
