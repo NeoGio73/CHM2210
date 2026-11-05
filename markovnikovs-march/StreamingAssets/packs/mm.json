@@ -1,0 +1,1139 @@
+{
+ "id": "mm",
+ "title": "MARKOVNIKOV'S MARCH",
+ "subtitle": "Alkenes and Alkynes · Chapters 8 and 9",
+ "course": "CHM 2210 Organic Chemistry I",
+ "completionPrefix": "MM89",
+ "passPercent": 0,
+ "extraCredit": 8,
+ "wrongDamage": 0.08,
+ "hud": {
+  "objective": "March on the shield generator",
+  "hull": "HULL",
+  "score": "SCORE",
+  "wave": "LINE",
+  "targetHint": "Shoot the turret showing the correct product or reagent: click it, click the answer, or press 1–4",
+  "boss": "SHIELD GENERATOR",
+  "victory": "Shield generator destroyed",
+  "defeat": "Walker disabled"
+ },
+ "waves": [
+  {
+   "name": "Making Alkenes",
+   "briefing": "Eliminations: dehydrohalogenation and dehydration (8.1)",
+   "tags": [
+    "w1"
+   ],
+   "count": 3
+  },
+  {
+   "name": "Halogen Ridge",
+   "briefing": "X₂ and halohydrin additions (8.2–8.3)",
+   "tags": [
+    "w2"
+   ],
+   "count": 3
+  },
+  {
+   "name": "Hydration Trench",
+   "briefing": "Adding water: acid, oxymercuration, hydroboration (8.4–8.5)",
+   "tags": [
+    "w3"
+   ],
+   "count": 3
+  },
+  {
+   "name": "Ring Battery",
+   "briefing": "Hydrogenation, epoxides, diols, cyclopropanes (8.6, 8.7, 8.9)",
+   "tags": [
+    "w4"
+   ],
+   "count": 3
+  },
+  {
+   "name": "Cleavage Line",
+   "briefing": "Ozonolysis and KMnO₄ cleavage (8.8)",
+   "tags": [
+    "w5"
+   ],
+   "count": 3
+  },
+  {
+   "name": "Alkyne Outpost",
+   "briefing": "Adding HX, X₂ and water to alkynes (9.3–9.4)",
+   "tags": [
+    "w6"
+   ],
+   "count": 3
+  },
+  {
+   "name": "Reduction Ridge",
+   "briefing": "Lindlar, Li/NH₃ and full hydrogenation (9.5)",
+   "tags": [
+    "w7"
+   ],
+   "count": 3
+  },
+  {
+   "name": "Acetylide Gate",
+   "briefing": "Making alkynes and alkylating acetylide anions (9.2, 9.7–9.8)",
+   "tags": [
+    "w8"
+   ],
+   "count": 3
+  }
+ ],
+ "boss": {
+  "name": "Shield Generator",
+  "briefing": "Synthesis: make 5-methyl-1-hexanol from acetylene, one step per power node",
+  "context": "Goal: make 5-methyl-1-hexanol starting from acetylene.",
+  "image": "packs/mm/img/boss_target.png",
+  "questionIds": [
+   "s1",
+   "s2",
+   "s3",
+   "s4"
+  ]
+ },
+ "questions": [
+  {
+   "id": "m1",
+   "type": "mc",
+   "tags": [
+    "w1"
+   ],
+   "prompt": "Bromocyclohexane is heated with KOH in ethanol. What is the product?",
+   "explanation": "Dehydrohalogenation: the base removes H and Br from neighboring carbons and leaves a C=C. The product is cyclohexene.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/m1_c0.png",
+    "packs/mm/img/m1_c1.png",
+    "packs/mm/img/m1_c2.png",
+    "packs/mm/img/m1_c3.png"
+   ],
+   "image": "packs/mm/img/m1_scheme.png"
+  },
+  {
+   "id": "m2",
+   "type": "mc",
+   "tags": [
+    "w1"
+   ],
+   "prompt": "1-Methylcyclohexanol is treated with aqueous acid. What is the main product?",
+   "explanation": "Dehydration loses H₂O and gives the more substituted alkene, 1-methylcyclohexene (C=C in the ring next to the CH₃).",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/m2_c0.png",
+    "packs/mm/img/m2_c1.png",
+    "packs/mm/img/m2_c2.png",
+    "packs/mm/img/m2_c3.png"
+   ],
+   "image": "packs/mm/img/m2_scheme.png"
+  },
+  {
+   "id": "m3",
+   "type": "mc",
+   "tags": [
+    "w1"
+   ],
+   "prompt": "Which reagents carry out this conversion?",
+   "explanation": "An alcohol loses water (dehydration) with acid. KOH/ethanol removes HX from an alkyl halide, not water from an alcohol.",
+   "choices": [
+    "H₂SO₄, H₂O, THF, 50 °C",
+    "KOH, ethanol",
+    "H₂, Pd/C",
+    "1. BH₃, THF  2. H₂O₂, OH⁻"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/m3_scheme.png"
+  },
+  {
+   "id": "m4",
+   "type": "mc",
+   "tags": [
+    "w1"
+   ],
+   "prompt": "2-Bromo-2-methylpropane is heated with KOH in ethanol. What is the product?",
+   "explanation": "Loss of HBr gives 2-methylpropene. The double bond forms between the carbon that held Br and a neighboring carbon.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/m4_c0.png",
+    "packs/mm/img/m4_c1.png",
+    "packs/mm/img/m4_c2.png",
+    "packs/mm/img/m4_c3.png"
+   ],
+   "image": "packs/mm/img/m4_scheme.png"
+  },
+  {
+   "id": "m5",
+   "type": "mc",
+   "tags": [
+    "w1"
+   ],
+   "prompt": "Dehydrohalogenation and dehydration both make alkenes. What does each one remove?",
+   "explanation": "Alkyl halide − HX (base, e.g. KOH) → alkene. Alcohol − H₂O (acid, e.g. H₂SO₄) → alkene.",
+   "choices": [
+    "Dehydrohalogenation removes HX; dehydration removes H₂O",
+    "Dehydrohalogenation removes X₂; dehydration removes H₂",
+    "Both remove H₂O",
+    "Dehydrohalogenation removes H₂O; dehydration removes HX"
+   ],
+   "answer": 0
+  },
+  {
+   "id": "h1",
+   "type": "mc",
+   "tags": [
+    "w2"
+   ],
+   "prompt": "Cyclopentene reacts with Br₂. What is the product?",
+   "explanation": "Br₂ adds anti: the two Br atoms end up on opposite faces. trans-1,2-Dibromocyclopentane is the only product.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/h1_c0.png",
+    "packs/mm/img/h1_c1.png",
+    "packs/mm/img/h1_c2.png",
+    "packs/mm/img/h1_c3.png"
+   ],
+   "image": "packs/mm/img/h1_scheme.png"
+  },
+  {
+   "id": "h2",
+   "type": "mc",
+   "tags": [
+    "w2"
+   ],
+   "prompt": "Ethylene reacts with Cl₂. What is the product?",
+   "explanation": "One Cl adds to each carbon of the double bond: 1,2-dichloroethane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/h2_c0.png",
+    "packs/mm/img/h2_c1.png",
+    "packs/mm/img/h2_c2.png",
+    "packs/mm/img/h2_c3.png"
+   ],
+   "image": "packs/mm/img/h2_scheme.png"
+  },
+  {
+   "id": "h3",
+   "type": "mc",
+   "tags": [
+    "w2"
+   ],
+   "prompt": "Cyclohexene reacts with Br₂ in water. What is the product?",
+   "explanation": "In water a halohydrin forms: Br on one carbon, OH on the other, added anti. The product is trans-2-bromocyclohexanol.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/h3_c0.png",
+    "packs/mm/img/h3_c1.png",
+    "packs/mm/img/h3_c2.png",
+    "packs/mm/img/h3_c3.png"
+   ],
+   "image": "packs/mm/img/h3_scheme.png"
+  },
+  {
+   "id": "h4",
+   "type": "mc",
+   "tags": [
+    "w2"
+   ],
+   "prompt": "1-Methylcyclohexene reacts with Br₂ in water. Where do the Br and OH end up? (Stereochemistry not shown.)",
+   "explanation": "The OH goes to the more substituted carbon (the one with the CH₃) and the Br to the less substituted one: 2-bromo-1-methylcyclohexanol.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/h4_c0.png",
+    "packs/mm/img/h4_c1.png",
+    "packs/mm/img/h4_c2.png",
+    "packs/mm/img/h4_c3.png"
+   ],
+   "image": "packs/mm/img/h4_scheme.png"
+  },
+  {
+   "id": "h5",
+   "type": "mc",
+   "tags": [
+    "w2"
+   ],
+   "prompt": "Which reagent turns cyclohexene into trans-2-bromocyclohexanol?",
+   "explanation": "Water must be present to supply the OH. Br₂ in CH₂Cl₂ gives the dibromide instead.",
+   "choices": [
+    "Br₂, H₂O",
+    "Br₂, CH₂Cl₂",
+    "HBr, ether",
+    "H₃O⁺"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/h5_scheme.png"
+  },
+  {
+   "id": "y1",
+   "type": "mc",
+   "tags": [
+    "w3"
+   ],
+   "prompt": "1-Methylcyclopentene undergoes oxymercuration–demercuration. What is the product?",
+   "explanation": "Oxymercuration adds H and OH with Markovnikov regiochemistry: the OH goes to the more substituted carbon. 1-Methylcyclopentanol.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/y1_c0.png",
+    "packs/mm/img/y1_c1.png",
+    "packs/mm/img/y1_c2.png",
+    "packs/mm/img/y1_c3.png"
+   ],
+   "image": "packs/mm/img/y1_scheme.png"
+  },
+  {
+   "id": "y2",
+   "type": "mc",
+   "tags": [
+    "w3"
+   ],
+   "prompt": "1-Methylcyclopentene undergoes hydroboration–oxidation. What is the product?",
+   "explanation": "Hydroboration is non-Markovnikov and syn: H and OH add to the same face, OH on the less substituted carbon. That puts CH₃ and OH trans: trans-2-methylcyclopentanol.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/y2_c0.png",
+    "packs/mm/img/y2_c1.png",
+    "packs/mm/img/y2_c2.png",
+    "packs/mm/img/y2_c3.png"
+   ],
+   "image": "packs/mm/img/y2_scheme.png"
+  },
+  {
+   "id": "y3",
+   "type": "mc",
+   "tags": [
+    "w3"
+   ],
+   "prompt": "2-Methyl-2-pentene undergoes hydroboration–oxidation. What is the product?",
+   "explanation": "The OH goes to the less substituted alkene carbon: 2-methyl-3-pentanol (Worked Example 8.1a).",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/y3_c0.png",
+    "packs/mm/img/y3_c1.png",
+    "packs/mm/img/y3_c2.png",
+    "packs/mm/img/y3_c3.png"
+   ],
+   "image": "packs/mm/img/y3_scheme.png"
+  },
+  {
+   "id": "y4",
+   "type": "mc",
+   "tags": [
+    "w3"
+   ],
+   "prompt": "2-Methyl-2-pentene undergoes oxymercuration–demercuration. What is the product?",
+   "explanation": "Markovnikov hydration puts the OH on the more substituted carbon: 2-methyl-2-pentanol (Worked Example 8.1b).",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/y4_c0.png",
+    "packs/mm/img/y4_c1.png",
+    "packs/mm/img/y4_c2.png",
+    "packs/mm/img/y4_c3.png"
+   ],
+   "image": "packs/mm/img/y4_scheme.png"
+  },
+  {
+   "id": "y5",
+   "type": "mc",
+   "tags": [
+    "w3"
+   ],
+   "prompt": "Which reagents give this alcohol from 3-methyl-3-hexene?",
+   "explanation": "The OH is on the less substituted carbon, so the alkene was hydrated non-Markovnikov: hydroboration–oxidation (Worked Example 8.2).",
+   "choices": [
+    "1. BH₃, THF  2. H₂O₂, OH⁻",
+    "1. Hg(OAc)₂, H₂O  2. NaBH₄",
+    "H₂O, H₂SO₄",
+    "1. OsO₄  2. NaHSO₃"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/y5_scheme.png"
+  },
+  {
+   "id": "y6",
+   "type": "mc",
+   "tags": [
+    "w3"
+   ],
+   "prompt": "1-Butene is hydrated with aqueous acid. What forms?",
+   "explanation": "Markovnikov hydration gives 2-butanol. The starting alkene is achiral, so water adds equally to both faces: a racemic mixture.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/y6_c0.png",
+    "packs/mm/img/y6_c1.png",
+    "packs/mm/img/y6_c2.png",
+    "packs/mm/img/y6_c3.png"
+   ],
+   "image": "packs/mm/img/y6_scheme.png"
+  },
+  {
+   "id": "r1",
+   "type": "mc",
+   "tags": [
+    "w4"
+   ],
+   "prompt": "1,2-Dimethylcyclohexene is hydrogenated. What is the product?",
+   "explanation": "Both H atoms add to the same face (syn) on the catalyst surface, so the two CH₃ groups end up cis: cis-1,2-dimethylcyclohexane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/r1_c0.png",
+    "packs/mm/img/r1_c1.png",
+    "packs/mm/img/r1_c2.png",
+    "packs/mm/img/r1_c3.png"
+   ],
+   "image": "packs/mm/img/r1_scheme.png"
+  },
+  {
+   "id": "r2",
+   "type": "mc",
+   "tags": [
+    "w4"
+   ],
+   "prompt": "Cycloheptene reacts with meta-chloroperoxybenzoic acid (mCPBA). What is the product?",
+   "explanation": "A peroxyacid delivers one O atom to the double bond and gives an epoxide: 1,2-epoxycycloheptane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/r2_c0.png",
+    "packs/mm/img/r2_c1.png",
+    "packs/mm/img/r2_c2.png",
+    "packs/mm/img/r2_c3.png"
+   ],
+   "image": "packs/mm/img/r2_scheme.png"
+  },
+  {
+   "id": "r3",
+   "type": "mc",
+   "tags": [
+    "w4"
+   ],
+   "prompt": "1,2-Dimethylcyclopentene is treated with OsO₄, then NaHSO₃. What is the product?",
+   "explanation": "OsO₄ adds both OH groups to the same face (syn): cis-1,2-dimethyl-1,2-cyclopentanediol. Cleaving the C=C would need O₃ instead.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/r3_c0.png",
+    "packs/mm/img/r3_c1.png",
+    "packs/mm/img/r3_c2.png",
+    "packs/mm/img/r3_c3.png"
+   ],
+   "image": "packs/mm/img/r3_scheme.png"
+  },
+  {
+   "id": "r4",
+   "type": "mc",
+   "tags": [
+    "w4"
+   ],
+   "prompt": "Cyclohexene undergoes the Simmons–Smith reaction. What is the product?",
+   "explanation": "The zinc carbenoid adds a CH₂ across the double bond and closes a cyclopropane: bicyclo[4.1.0]heptane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/r4_c0.png",
+    "packs/mm/img/r4_c1.png",
+    "packs/mm/img/r4_c2.png",
+    "packs/mm/img/r4_c3.png"
+   ],
+   "image": "packs/mm/img/r4_scheme.png"
+  },
+  {
+   "id": "r5",
+   "type": "mc",
+   "tags": [
+    "w4"
+   ],
+   "prompt": "Cyclohexene reacts with chloroform and KOH. What is the product?",
+   "explanation": "Base turns CHCl₃ into dichlorocarbene (:CCl₂), which adds to the C=C and gives a dichlorocyclopropane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/r5_c0.png",
+    "packs/mm/img/r5_c1.png",
+    "packs/mm/img/r5_c2.png",
+    "packs/mm/img/r5_c3.png"
+   ],
+   "image": "packs/mm/img/r5_scheme.png"
+  },
+  {
+   "id": "r6",
+   "type": "mc",
+   "tags": [
+    "w4"
+   ],
+   "prompt": "Which reagents make this cis-1,2-diol?",
+   "explanation": "OsO₄ gives a cis diol. mCPBA stops at the epoxide; O₃ and acidic KMnO₄ break the C=C apart.",
+   "choices": [
+    "1. OsO₄  2. NaHSO₃, H₂O",
+    "mCPBA, CH₂Cl₂",
+    "1. O₃  2. Zn, H₃O⁺",
+    "KMnO₄, H₃O⁺"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/r6_scheme.png"
+  },
+  {
+   "id": "c1",
+   "type": "mc",
+   "tags": [
+    "w5"
+   ],
+   "prompt": "Isopropylidenecyclohexane is treated with ozone, then zinc. What forms?",
+   "explanation": "Ozonolysis splits the C=C into two C=O groups: cyclohexanone and acetone.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/c1_c0.png",
+    "packs/mm/img/c1_c1.png",
+    "packs/mm/img/c1_c2.png",
+    "packs/mm/img/c1_c3.png"
+   ],
+   "image": "packs/mm/img/c1_scheme.png"
+  },
+  {
+   "id": "c2",
+   "type": "mc",
+   "tags": [
+    "w5"
+   ],
+   "prompt": "1-Methylcyclohexene is treated with ozone, then zinc. What forms?",
+   "explanation": "The ring opens where the C=C was. The substituted carbon becomes a ketone and the CH becomes an aldehyde: 6-oxoheptanal.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/c2_c0.png",
+    "packs/mm/img/c2_c1.png",
+    "packs/mm/img/c2_c2.png",
+    "packs/mm/img/c2_c3.png"
+   ],
+   "image": "packs/mm/img/c2_scheme.png"
+  },
+  {
+   "id": "c3",
+   "type": "mc",
+   "tags": [
+    "w5"
+   ],
+   "prompt": "1-Methylcyclohexene is treated with acidic KMnO₄. What forms?",
+   "explanation": "Acidic KMnO₄ cleaves the C=C like ozone, but any carbon that carried an H is oxidized further, to COOH: 6-oxoheptanoic acid.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/c3_c0.png",
+    "packs/mm/img/c3_c1.png",
+    "packs/mm/img/c3_c2.png",
+    "packs/mm/img/c3_c3.png"
+   ],
+   "image": "packs/mm/img/c3_scheme.png"
+  },
+  {
+   "id": "c4",
+   "type": "mc",
+   "tags": [
+    "w5"
+   ],
+   "prompt": "3,7-Dimethyl-1-octene is treated with acidic KMnO₄. What forms?",
+   "explanation": "The terminal =CH₂ carbon is oxidized all the way to CO₂. The other carbon becomes a carboxylic acid: 2,6-dimethylheptanoic acid.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/c4_c0.png",
+    "packs/mm/img/c4_c1.png",
+    "packs/mm/img/c4_c2.png",
+    "packs/mm/img/c4_c3.png"
+   ],
+   "image": "packs/mm/img/c4_scheme.png"
+  },
+  {
+   "id": "c5",
+   "type": "mc",
+   "tags": [
+    "w5"
+   ],
+   "prompt": "Which alkene gives cyclopentanone and propanal on ozonolysis?",
+   "explanation": "Remove the two O atoms and join the two carbonyl carbons with a double bond: propylidenecyclopentane (Worked Example 8.3).",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/c5_c0.png",
+    "packs/mm/img/c5_c1.png",
+    "packs/mm/img/c5_c2.png",
+    "packs/mm/img/c5_c3.png"
+   ],
+   "image": "packs/mm/img/c5_scheme.png"
+  },
+  {
+   "id": "c6",
+   "type": "mc",
+   "tags": [
+    "w5"
+   ],
+   "prompt": "With acidic KMnO₄, what does a terminal =CH₂ carbon become?",
+   "explanation": "KMnO₄ oxidizes as far as it can. A =CH₂ carbon has two H atoms and ends up as CO₂. (Ozonolysis would stop at CH₂O.)",
+   "choices": [
+    "CO₂",
+    "Formaldehyde, CH₂O",
+    "Methanol, CH₃OH",
+    "It is not changed"
+   ],
+   "answer": 0
+  },
+  {
+   "id": "a1",
+   "type": "mc",
+   "tags": [
+    "w6"
+   ],
+   "prompt": "1-Hexyne reacts with one equivalent of HBr. What is the product?",
+   "explanation": "Markovnikov addition: Br goes to the more substituted (internal) carbon: 2-bromo-1-hexene.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/a1_c0.png",
+    "packs/mm/img/a1_c1.png",
+    "packs/mm/img/a1_c2.png",
+    "packs/mm/img/a1_c3.png"
+   ],
+   "image": "packs/mm/img/a1_scheme.png"
+  },
+  {
+   "id": "a2",
+   "type": "mc",
+   "tags": [
+    "w6"
+   ],
+   "prompt": "1-Hexyne reacts with two equivalents of HBr. What is the product?",
+   "explanation": "The second HBr adds Markovnikov to 2-bromo-1-hexene, putting both Br atoms on carbon 2: 2,2-dibromohexane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/a2_c0.png",
+    "packs/mm/img/a2_c1.png",
+    "packs/mm/img/a2_c2.png",
+    "packs/mm/img/a2_c3.png"
+   ],
+   "image": "packs/mm/img/a2_scheme.png"
+  },
+  {
+   "id": "a3",
+   "type": "mc",
+   "tags": [
+    "w6"
+   ],
+   "prompt": "1-Butyne reacts with one equivalent of Br₂. What is the product?",
+   "explanation": "Br₂ adds anti, so the two Br atoms end up trans: (E)-1,2-dibromo-1-butene. A second Br₂ would give the tetrabromide.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/a3_c0.png",
+    "packs/mm/img/a3_c1.png",
+    "packs/mm/img/a3_c2.png",
+    "packs/mm/img/a3_c3.png"
+   ],
+   "image": "packs/mm/img/a3_scheme.png"
+  },
+  {
+   "id": "a4",
+   "type": "mc",
+   "tags": [
+    "w6"
+   ],
+   "prompt": "1-Hexyne is hydrated with HgSO₄ in aqueous acid. What is the product?",
+   "explanation": "Markovnikov addition of water gives an enol, which turns into the ketone: a methyl ketone, 2-hexanone.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/a4_c0.png",
+    "packs/mm/img/a4_c1.png",
+    "packs/mm/img/a4_c2.png",
+    "packs/mm/img/a4_c3.png"
+   ],
+   "image": "packs/mm/img/a4_scheme.png"
+  },
+  {
+   "id": "a5",
+   "type": "mc",
+   "tags": [
+    "w6"
+   ],
+   "prompt": "1-Hexyne undergoes hydroboration–oxidation. What is the product?",
+   "explanation": "Non-Markovnikov: the O ends up on the terminal carbon. The enol becomes an aldehyde: hexanal.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/a5_c0.png",
+    "packs/mm/img/a5_c1.png",
+    "packs/mm/img/a5_c2.png",
+    "packs/mm/img/a5_c3.png"
+   ],
+   "image": "packs/mm/img/a5_scheme.png"
+  },
+  {
+   "id": "a6",
+   "type": "mc",
+   "tags": [
+    "w6"
+   ],
+   "prompt": "3-Hexyne reacts with one equivalent of HCl. What is the product?",
+   "explanation": "H and Cl add anti, which here gives (Z)-3-chloro-3-hexene. A second HCl would give 3,3-dichlorohexane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/a6_c0.png",
+    "packs/mm/img/a6_c1.png",
+    "packs/mm/img/a6_c2.png",
+    "packs/mm/img/a6_c3.png"
+   ],
+   "image": "packs/mm/img/a6_scheme.png"
+  },
+  {
+   "id": "a7",
+   "type": "mc",
+   "tags": [
+    "w6"
+   ],
+   "prompt": "Hydrating an unsymmetrical internal alkyne, R–C≡C–R′, with HgSO₄/H₃O⁺ gives…",
+   "explanation": "The OH can go to either alkyne carbon, so two different ketones form. That is why internal alkyne hydration is only useful when R = R′.",
+   "choices": [
+    "A mixture of two ketones",
+    "A single ketone",
+    "An aldehyde",
+    "A diol"
+   ],
+   "answer": 0
+  },
+  {
+   "id": "d1",
+   "type": "mc",
+   "tags": [
+    "w7"
+   ],
+   "prompt": "4-Octyne is hydrogenated with the Lindlar catalyst. What is the product?",
+   "explanation": "The Lindlar catalyst stops at the alkene and adds both H atoms to the same side: cis-4-octene.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/d1_c0.png",
+    "packs/mm/img/d1_c1.png",
+    "packs/mm/img/d1_c2.png",
+    "packs/mm/img/d1_c3.png"
+   ],
+   "image": "packs/mm/img/d1_scheme.png"
+  },
+  {
+   "id": "d2",
+   "type": "mc",
+   "tags": [
+    "w7"
+   ],
+   "prompt": "5-Decyne is reduced with lithium in liquid ammonia. What is the product?",
+   "explanation": "Li/NH₃ gives the trans alkene: trans-5-decene.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/d2_c0.png",
+    "packs/mm/img/d2_c1.png",
+    "packs/mm/img/d2_c2.png",
+    "packs/mm/img/d2_c3.png"
+   ],
+   "image": "packs/mm/img/d2_scheme.png"
+  },
+  {
+   "id": "d3",
+   "type": "mc",
+   "tags": [
+    "w7"
+   ],
+   "prompt": "4-Octyne is hydrogenated with Pd/C. What is the product?",
+   "explanation": "Pd/C does not stop at the alkene. Two equivalents of H₂ add and give the alkane, octane.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/d3_c0.png",
+    "packs/mm/img/d3_c1.png",
+    "packs/mm/img/d3_c2.png",
+    "packs/mm/img/d3_c3.png"
+   ],
+   "image": "packs/mm/img/d3_scheme.png"
+  },
+  {
+   "id": "d4",
+   "type": "mc",
+   "tags": [
+    "w7"
+   ],
+   "prompt": "Which reagents turn 2-hexyne into trans-2-hexene?",
+   "explanation": "Trans alkene from an alkyne: lithium in ammonia. Lindlar gives the cis alkene, and Pd/C goes all the way to the alkane.",
+   "choices": [
+    "Li, NH₃",
+    "H₂, Lindlar catalyst",
+    "H₂, Pd/C",
+    "NaNH₂, NH₃"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/d4_scheme.png"
+  },
+  {
+   "id": "d5",
+   "type": "mc",
+   "tags": [
+    "w7"
+   ],
+   "prompt": "Which reagents turn 2-hexyne into cis-2-hexene?",
+   "explanation": "Cis alkene from an alkyne: H₂ with the poisoned Lindlar catalyst.",
+   "choices": [
+    "H₂, Lindlar catalyst",
+    "Li, NH₃",
+    "H₂, Pd/C",
+    "H₂O, H₂SO₄, HgSO₄"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/d5_scheme.png"
+  },
+  {
+   "id": "k1",
+   "type": "mc",
+   "tags": [
+    "w8"
+   ],
+   "prompt": "1,2-Dibromo-1,2-diphenylethane is heated with two equivalents of KOH. What is the product?",
+   "explanation": "Two eliminations of HBr from a vicinal dibromide give a triple bond: diphenylacetylene.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/k1_c0.png",
+    "packs/mm/img/k1_c1.png",
+    "packs/mm/img/k1_c2.png",
+    "packs/mm/img/k1_c3.png"
+   ],
+   "image": "packs/mm/img/k1_scheme.png"
+  },
+  {
+   "id": "k2",
+   "type": "mc",
+   "tags": [
+    "w8"
+   ],
+   "prompt": "1-Hexyne is deprotonated with NaNH₂ and then treated with 1-bromobutane. What is the product?",
+   "explanation": "The acetylide anion replaces the Br and forms a new C–C bond. The butyl group goes on the alkyne end: 5-decyne.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/k2_c0.png",
+    "packs/mm/img/k2_c1.png",
+    "packs/mm/img/k2_c2.png",
+    "packs/mm/img/k2_c3.png"
+   ],
+   "image": "packs/mm/img/k2_scheme.png"
+  },
+  {
+   "id": "k3",
+   "type": "mc",
+   "tags": [
+    "w8"
+   ],
+   "prompt": "Propyne's acetylide anion (sodium salt) is mixed with bromocyclohexane, a secondary alkyl halide. What happens?",
+   "explanation": "With secondary (and tertiary) alkyl halides the acetylide acts as a base: it removes H and Br, giving cyclohexene back propyne. Alkylation works with primary halides.",
+   "choices": [
+    "",
+    "",
+    "",
+    "No reaction"
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/k3_c0.png",
+    "packs/mm/img/k3_c1.png",
+    "packs/mm/img/k3_c2.png",
+    ""
+   ],
+   "image": "packs/mm/img/k3_scheme.png"
+  },
+  {
+   "id": "k4",
+   "type": "mc",
+   "tags": [
+    "w8"
+   ],
+   "prompt": "Which base is strong enough to remove the H from a terminal alkyne (R–C≡C–H)?",
+   "explanation": "Terminal alkynes are weak acids (pKa about 25). The amide ion, NH₂⁻, is a strong enough base; hydroxide is not.",
+   "choices": [
+    "NaNH₂ (sodium amide)",
+    "NaOH",
+    "NaHCO₃",
+    "H₂O"
+   ],
+   "answer": 0
+  },
+  {
+   "id": "k5",
+   "type": "mc",
+   "tags": [
+    "w8"
+   ],
+   "prompt": "How would you make 1-pentyne from acetylene?",
+   "explanation": "Make the acetylide with NaNH₂, then alkylate with a primary halide that carries the three extra carbons, 1-bromopropane. 2-Bromopropane is secondary and would mostly eliminate.",
+   "choices": [
+    "1. NaNH₂, NH₃  2. CH₃CH₂CH₂Br",
+    "1. NaNH₂, NH₃  2. (CH₃)₂CHBr",
+    "1. HBr  2. CH₃CH₂CH₃",
+    "H₂, Lindlar catalyst"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/k5_scheme.png"
+  },
+  {
+   "id": "s1",
+   "type": "mc",
+   "tags": [
+    "boss"
+   ],
+   "prompt": "Step 1: Turn acetylene into its acetylide anion. Which reagent?",
+   "explanation": "Only a very strong base such as NaNH₂ removes the alkyne H.",
+   "choices": [
+    "NaNH₂, NH₃",
+    "NaOH, H₂O",
+    "H₂, Lindlar catalyst",
+    "Br₂, CH₂Cl₂"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/s1_scheme.png"
+  },
+  {
+   "id": "s2",
+   "type": "mc",
+   "tags": [
+    "boss"
+   ],
+   "prompt": "Step 2: Which alkyl halide gives 5-methyl-1-hexyne?",
+   "explanation": "The halide must be primary and carry the five carbons the target still needs. 1-Bromo-3-methylbutane fits; the secondary halide would eliminate.",
+   "choices": [
+    "",
+    "",
+    "",
+    ""
+   ],
+   "answer": 0,
+   "choiceImages": [
+    "packs/mm/img/s2_c0.png",
+    "packs/mm/img/s2_c1.png",
+    "packs/mm/img/s2_c2.png",
+    "packs/mm/img/s2_c3.png"
+   ],
+   "image": "packs/mm/img/s2_scheme.png"
+  },
+  {
+   "id": "s3",
+   "type": "mc",
+   "tags": [
+    "boss"
+   ],
+   "prompt": "Step 3: Reduce 5-methyl-1-hexyne to 5-methyl-1-hexene. Which reagents?",
+   "explanation": "Lindlar stops at the alkene. Pd/C would go all the way to the alkane.",
+   "choices": [
+    "H₂, Lindlar catalyst",
+    "H₂, Pd/C",
+    "H₂O, H₂SO₄, HgSO₄",
+    "1. BH₃  2. H₂O₂"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/s3_scheme.png"
+  },
+  {
+   "id": "s4",
+   "type": "mc",
+   "tags": [
+    "boss"
+   ],
+   "prompt": "Step 4: Turn 5-methyl-1-hexene into the primary alcohol, 5-methyl-1-hexanol. Which reagents?",
+   "explanation": "A primary alcohol from a terminal alkene needs non-Markovnikov hydration: hydroboration–oxidation. Markovnikov methods would give the secondary alcohol.",
+   "choices": [
+    "1. BH₃, THF  2. H₂O₂, OH⁻",
+    "1. Hg(OAc)₂, H₂O  2. NaBH₄",
+    "H₂O, H₂SO₄",
+    "1. OsO₄  2. NaHSO₃"
+   ],
+   "answer": 0,
+   "image": "packs/mm/img/s4_scheme.png"
+  }
+ ]
+}
